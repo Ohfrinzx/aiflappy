@@ -11,6 +11,7 @@ import { Audio } from './audio/audio.js';
 import { loadSprites } from './assets.js';
 import { TitleScene } from './scenes/title.js';
 import { PlayScene } from './scenes/play.js';
+import { VERSION } from './version.js';
 
 function readParams() {
   const q = new URLSearchParams(location.search);
@@ -43,6 +44,7 @@ async function boot() {
     storage,
     scenes,
     params,
+    version: VERSION,
     runCount: 0,
     newRun() {
       const startScore = game.runCount++ === 0 ? params.start : 0;
@@ -81,6 +83,7 @@ async function boot() {
   }).start();
 
   window.__game = game; // handy for console tinkering
+  console.info(`aiflappy v${VERSION}`);
 }
 
 boot();

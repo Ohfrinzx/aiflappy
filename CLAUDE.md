@@ -15,6 +15,9 @@ GitHub Pages from `main`. See README.md for the architecture.
   2. A lint pass shows no unused or undefined identifiers.
   3. The changed feature has been looked at in screenshots (desktop and a
      phone-sized viewport such as 402×874 @3x).
+- **Bump `src/version.js` with every merge to `main`** (MAJOR.MINOR.PATCH:
+  minor for features, patch for fixes). The title screen shows it so the
+  owner can confirm which build their phone is running.
 
 ## Notes
 

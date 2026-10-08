@@ -60,6 +60,9 @@ try {
   await p.goto(base);
   await p.waitForTimeout(400);
   check((await state(p)).scene === 'TitleScene', 'title screen loads');
+  const fileVersion = fs.readFileSync(path.join(root, 'src/version.js'), 'utf8').match(/VERSION = '([^']+)'/)?.[1];
+  const shown = await p.evaluate(() => window.__game.version && window.__game.sprites.has('text-version') && window.__game.version);
+  check(!!fileVersion && shown === fileVersion, `title shows version v${fileVersion}`);
   await p.keyboard.press('Space');
   await p.waitForTimeout(900);
   check((await state(p)).state === 'ready', 'Play leads to Get Ready');

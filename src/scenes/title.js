@@ -40,5 +40,8 @@ export class TitleScene {
     r.drawCentered(sp.get('logo'), CONFIG.width / 2, CONFIG.layout.titleLogoY);
     this.bird.render(r, alpha);
     this.play.render(r);
+    // Version, bottom-centre in the dirt (clear of the iPhone home indicator).
+    const ver = sp.get('text-version');
+    r.drawCentered(ver, CONFIG.width / 2, Math.round(Math.max(CONFIG.groundY + 40, r.viewBottom - 34)));
   }
 }

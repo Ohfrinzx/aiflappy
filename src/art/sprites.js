@@ -10,6 +10,8 @@ import { THEMES } from '../content/themes.js';
 import { BIRDS } from '../content/birds.js';
 import { MEDALS } from '../content/medals.js';
 import { KING_CROW_PALETTE } from '../content/bosses/palettes.js';
+import { VERSION } from '../version.js';
+import { renderText } from './font.js';
 
 export const FLAP_NAMES = ['upflap', 'midflap', 'downflap'];
 
@@ -34,5 +36,6 @@ export function buildProceduralSprites() {
   s.feather = makeFeather(KING_CROW_PALETTE);
   makeOrb().forEach((c, i) => (s[`orb-${i}`] = c));
   s.hpbar = makeHpFrame();
+  s['text-version'] = renderText(`V${VERSION}`, { font: 'small', fill: '#ffffff', outer: '#a89a5e' });
   return s;
 }
