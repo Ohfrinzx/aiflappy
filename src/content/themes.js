@@ -1,0 +1,35 @@
+// Backgrounds. Add an entry here to add a new theme; `weight` controls how often
+// it's picked at the start of a run. `file` is the optional drop-in PNG.
+export const THEMES = [
+  {
+    id: 'day',
+    file: 'background-day',
+    weight: 1,
+    seed: 11,
+    sky: '#4ec0ca',
+    cloud: '#e9fcd9',
+    cloudEdge: '#dcf7d8',
+    city: '#d3efc7',
+    cityEdge: '#a4ddd8',
+    window: '#bae7c4',
+    bush: '#5ee270',
+    bushLight: '#52ca6b',
+    bushEdge: '#67cc81',
+  },
+  {
+    id: 'night',
+    file: 'background-night',
+    weight: 1,
+    seed: 11,
+    sky: '#008793',
+    stars: '#aee8d2',
+    cloud: '#00b3c2',
+    cloudEdge: null,
+    city: '#00818c',
+    cityEdge: '#0093a0',
+    window: '#fcb800',
+    bush: '#00b200',
+    bushLight: '#00a300',
+    bushEdge: '#00a300',
+  },
+];
