@@ -18,6 +18,7 @@ export class Ground {
     const img = this.sprites.get('base');
     const wrap = Math.max(1, img.width - CONFIG.width);
     const off = lerp(this.pdist, this.dist, alpha) % wrap;
-    r.draw(img, -Math.round(off), CONFIG.groundY);
+    r.draw(img, -off, CONFIG.groundY);
+    r.fillBottom(this.sprites.edgeColor('base', 'bottom'));
   }
 }

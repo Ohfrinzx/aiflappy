@@ -1,6 +1,16 @@
 // Sound playback: uses real files when enabled & present, otherwise the synth.
 import { SYNTH } from './synth.js';
 
+// Drops trailing silence from a rendered buffer.
+function trim(ctx, buf) {
+  const d = buf.getChannelData(0);
+  let end = d.length;
+  while (end > 1 && Math.abs(d[end - 1]) < 1e-4) end--;
+  const out = ctx.createBuffer(1, end, buf.sampleRate);
+  out.copyToChannel(d.subarray(0, end), 0);
+  return out;
+}
+
 export class Audio {
   constructor(cfg, muted = false) {
     this.cfg = cfg;
@@ -19,9 +29,29 @@ export class Audio {
       this.master = this.ctx.createGain();
       this.master.gain.value = this.muted ? 0 : 0.8;
       this.master.connect(this.ctx.destination);
-      if (this.cfg.useFiles) this.loadFiles();
+      // Render synth sounds to buffers once; real files (if any) then override.
+      this.prerender().then(() => this.cfg.useFiles && this.loadFiles());
     }
     if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {});
+  }
+
+  // Pre-renders each synth sound offline so playing one is a single
+  // buffer-source node (building node graphs per tap can hitch on mobile).
+  async prerender() {
+    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if (!OAC) return;
+    const rate = this.ctx.sampleRate;
+    for (const [name, fn] of Object.entries(SYNTH)) {
+      if (this.buffers.has(name)) continue;
+      try {
+        const off = new OAC(1, Math.ceil(rate * 1.6), rate);
+        fn(off, off.destination, 0);
+        const buf = await off.startRendering();
+        this.buffers.set(name, trim(this.ctx, buf));
+      } catch {
+        /* keep live synthesis for this sound */
+      }
+    }
   }
 
   async loadFiles() {
@@ -50,7 +80,7 @@ export class Audio {
 
   play(name) {
     if (!this.ctx || this.muted) return;
-    const t = this.ctx.currentTime + 0.001;
+    const t = this.ctx.currentTime;
     const buf = this.buffers.get(name);
     if (buf) {
       const src = this.ctx.createBufferSource();

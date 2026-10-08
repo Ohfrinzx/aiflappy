@@ -36,6 +36,7 @@ export class PlayScene {
     this.deadT = 0;
     this.panel = null;
     this.victory = false;
+    this.queuedTap = false; // taps are applied at the next simulation step
     this.pauseButton = new Button(sp, 'button-pause', 10, 10, () => this.setPaused(true));
     this.resumeButton = new Button(sp, 'button-resume', 10, 10, () => this.setPaused(false));
   }
@@ -52,11 +53,7 @@ export class PlayScene {
 
     switch (this.state) {
       case 'ready':
-        if (evt.type === 'press') {
-          this.state = 'playing';
-          this.bird.start();
-          g.audio.play('wing');
-        }
+        if (evt.type === 'press') this.queuedTap = true;
         break;
       case 'playing':
         if (this.paused) {
@@ -65,7 +62,7 @@ export class PlayScene {
           return;
         }
         if (CONFIG.ui.showPauseButton && this.pauseButton.handle(evt)) return;
-        if (evt.type === 'press' && this.bird.flap()) g.audio.play('wing');
+        if (evt.type === 'press') this.queuedTap = true;
         break;
       case 'over':
         this.panel?.onInput(evt);
@@ -79,6 +76,7 @@ export class PlayScene {
 
   setPaused(p) {
     this.paused = p;
+    this.queuedTap = false;
     this.pauseButton.pressed = false;
     this.resumeButton.pressed = false;
     this.game.audio.play('swoosh');
@@ -145,6 +143,17 @@ export class PlayScene {
     const bird = this.bird;
     this.particles.update(dt);
 
+    // Apply input inside the fixed step so interpolation stays consistent.
+    const tap = this.queuedTap;
+    this.queuedTap = false;
+    if (tap && this.state === 'ready') {
+      this.state = 'playing';
+      bird.start();
+      this.game.audio.play('wing');
+    } else if (tap && this.state === 'playing' && bird.flap()) {
+      this.game.audio.play('wing');
+    }
+
     switch (this.state) {
       case 'ready':
         bird.update(dt);
@@ -194,6 +203,7 @@ export class PlayScene {
     const a = this.paused ? 1 : alpha;
 
     r.draw(sp.get(this.theme.file), 0, 0);
+    r.fillTop(sp.edgeColor(this.theme.file, 'top'));
     this.pipes.render(r, a);
     this.bosses.render(r, a);
     this.hazards.render(r, a);
@@ -218,7 +228,7 @@ export class PlayScene {
 
     if (this.state === 'playing' && CONFIG.ui.showPauseButton) {
       if (this.paused) {
-        r.rect(0, 0, W, CONFIG.height, '#000', 0.25);
+        r.rect(0, r.viewTop, W, r.viewBottom - r.viewTop, '#000', 0.25);
         r.drawCentered(sp.get('text-paused'), W / 2, 200);
         this.resumeButton.render(r);
       } else {

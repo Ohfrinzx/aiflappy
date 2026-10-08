@@ -27,7 +27,10 @@ async function boot() {
   const renderer = new Renderer(canvas, CONFIG.width, CONFIG.height);
   const input = new Input(renderer);
   const audio = new Audio(CONFIG.assets, storage.get('muted', false));
-  const sprites = await loadSprites(CONFIG.assets);
+  // Hi-res sprite copies on high-DPI screens (capped to bound memory).
+  const hiScale = Math.min(4, Math.ceil(renderer.pixelScale));
+  const sprites = await loadSprites(CONFIG.assets, hiScale);
+  renderer.smooth = hiScale > 1;
   const scenes = new SceneManager(renderer, CONFIG.fx.fadeTime);
   const params = readParams();
 

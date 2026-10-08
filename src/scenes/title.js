@@ -35,6 +35,7 @@ export class TitleScene {
   render(r, alpha) {
     const sp = this.game.sprites;
     r.draw(sp.get(this.theme.file), 0, 0);
+    r.fillTop(sp.edgeColor(this.theme.file, 'top'));
     this.ground.render(r, alpha);
     r.drawCentered(sp.get('logo'), CONFIG.width / 2, CONFIG.layout.titleLogoY);
     this.bird.render(r, alpha);

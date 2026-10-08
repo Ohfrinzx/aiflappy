@@ -42,15 +42,19 @@ export class PipeField {
   update(dt) {
     if (!this.moving) return;
     const w = this.img.width;
+    let last = null; // newest regular pipe (no per-tick allocations)
+    let n = 0;
     for (const p of this.list) {
       p.px = p.x;
       p.x -= p.speed * dt;
+      if (p.x > -w) {
+        this.list[n++] = p;
+        if (p.scores) last = p;
+      }
     }
-    this.list = this.list.filter((p) => p.x > -w);
+    this.list.length = n;
 
     if (this.spawning && this.spawned < this.spawnLimit) {
-      const regular = this.list.filter((p) => p.scores);
-      const last = regular[regular.length - 1];
       if (!last) {
         this.spawnRegular(this.spawned === 0 ? this.cfg.firstX : CONFIG.width + 10);
       } else if (last.x + this.cfg.spacing <= CONFIG.width + 10) {
@@ -88,7 +92,7 @@ export class PipeField {
   render(r, alpha) {
     const img = this.img;
     for (const p of this.list) {
-      const x = Math.round(lerp(p.px, p.x, alpha));
+      const x = lerp(p.px, p.x, alpha);
       r.drawFlippedY(img, x, p.gapY - img.height);
       r.draw(img, x, p.gapY + p.gap);
     }

@@ -4,13 +4,13 @@
 // Physics are derived from the classic 30 fps values used by FlapPyBird
 // (github.com/sourabhv/FlapPyBird): flap -9 px/frame, gravity 1 px/frame²,
 // max fall 10 px/frame, scroll 4 px/frame. Converted to per-second units so the
-// simulation can run at a fixed 60 Hz with identical arcs.
+// simulation can run at a fixed rate (120 Hz) with near-identical arcs.
 
 export const CONFIG = {
   width: 288,
   height: 512,
   groundY: 400, // top of the ground strip; game area is 0..groundY
-  tickRate: 60, // fixed simulation steps per second
+  tickRate: 120, // fixed simulation steps per second (matches ProMotion displays)
 
   bird: {
     x: 57, // 20% of screen width

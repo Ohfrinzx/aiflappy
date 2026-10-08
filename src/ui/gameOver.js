@@ -79,7 +79,8 @@ export class GameOverPanel {
     const pt = easeOutCubic(clamp((this.t - T_PANEL) / 0.4, 0, 1));
     const panel = sp.get('scoreboard');
     const px = Math.round((W - panel.width) / 2);
-    const py = Math.round(CONFIG.height + (L.panelY - CONFIG.height) * pt);
+    const from = this.game.renderer.viewBottom;
+    const py = Math.round(from + (L.panelY - from) * pt);
     r.draw(panel, px, py);
 
     const ct = clamp((this.t - T_COUNT) / this.countDur, 0, 1);

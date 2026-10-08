@@ -21,6 +21,7 @@ export class Particles {
   }
 
   update(dt) {
+    let n = 0;
     for (const p of this.list) {
       p.px = p.x;
       p.py = p.y;
@@ -28,8 +29,9 @@ export class Particles {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.life -= dt;
+      if (p.life > 0 && p.y < CONFIG.height + 120) this.list[n++] = p;
     }
-    this.list = this.list.filter((p) => p.life > 0 && p.y < CONFIG.height + 20);
+    this.list.length = n;
   }
 
   render(r) {

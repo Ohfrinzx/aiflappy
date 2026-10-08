@@ -1,12 +1,17 @@
 // Procedural sound effects (Web Audio). Each entry: (ctx, out, t) => void,
 // scheduling nodes at time t into destination `out`. Add new sounds here.
 
+// Deterministic white noise, so pre-rendered sounds are stable between loads.
 function noiseBuffer(ctx) {
   if (ctx._noise) return ctx._noise;
-  const len = ctx.sampleRate;
+  const len = ctx.sampleRate * 2;
   const buf = ctx.createBuffer(1, len, ctx.sampleRate);
   const d = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  let s = 12345;
+  for (let i = 0; i < len; i++) {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    d[i] = s / 2147483648 - 1;
+  }
   ctx._noise = buf;
   return buf;
 }
@@ -44,7 +49,7 @@ function noise(ctx, out, t, { dur, type = 'bandpass', f0, f1 = f0, q = 1, peak =
   if (f1 !== f0) filt.frequency.exponentialRampToValueAtTime(f1, t + dur);
   const g = env(ctx, t, attack, 0, dur, peak);
   src.connect(filt).connect(g).connect(out);
-  src.start(t, Math.random() * 0.5);
+  src.start(t, 0.25);
   src.stop(t + attack + dur + 0.05);
 }
 

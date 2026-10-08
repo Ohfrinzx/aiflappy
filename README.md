@@ -109,5 +109,18 @@ src/
 The motion constants start from the classic 30 fps values in
 [FlapPyBird](https://github.com/sourabhv/FlapPyBird) (MIT): flap −9, gravity +1,
 max fall 10 px/frame, 4 px/frame scroll, 100 px gap. They're converted to
-per-second units for a fixed 60 Hz simulation. Everything is adjustable in
-`src/config.js`.
+per-second units for a fixed 120 Hz simulation, which matches ProMotion
+displays. Rendering is interpolated, so it stays smooth at 60 Hz too.
+Everything is adjustable in `src/config.js`.
+
+## Display
+
+- On phones taller than 9:16, the view grows to fill the screen with no
+  letterbox bars. The extra sky goes above (always clearing the notch / Dynamic
+  Island) and the extra ground goes below. The playfield itself stays the
+  original 288×512, so gameplay is identical on every screen.
+- On high-DPI screens, sprites are drawn from 4× copies with smoothing. Every
+  art pixel comes out the same size at any scale, and rotated sprites get
+  clean edges.
+- Sounds are pre-rendered to audio buffers on the first tap, so each sound
+  effect is a single, cheap playback.
