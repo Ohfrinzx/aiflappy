@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
+const TYPES = { '.html': 'text/html', '.txt': 'text/plain', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
 
 async function loadPlaywright() {
   const candidates = [process.env.PLAYWRIGHT_PATH, 'playwright', '/opt/node22/lib/node_modules/playwright/index.mjs'].filter(Boolean);
@@ -28,7 +28,8 @@ const server = http.createServer((req, res) => {
     res.writeHead(404).end();
     return;
   }
-  res.writeHead(200, { 'Content-Type': TYPES[path.extname(target)] ?? 'application/octet-stream' });
+  // Same caching as GitHub Pages, so the service-worker freshness check is real.
+  res.writeHead(200, { 'Content-Type': TYPES[path.extname(target)] ?? 'application/octet-stream', 'Cache-Control': 'max-age=600' });
   fs.createReadStream(target).pipe(res);
 });
 await new Promise((r) => server.listen(0, r));
@@ -108,6 +109,31 @@ try {
   await p.waitForTimeout(100);
   check((await state(p)).state === 'playing', 'touch starts the run');
   check(p.errors.length === 0, `no page errors (phone) ${p.errors.join('; ')}`);
+
+  // 4. Standalone home-screen app with the old opaque status bar (shorter viewport).
+  p = await page({ width: 402, height: 812 }, { dpr: 3, touch: true });
+  await p.goto(`${base}?play`);
+  await p.waitForTimeout(300);
+  const h2 = await p.evaluate(() => window.__game.renderer.canvas.getBoundingClientRect().height);
+  check(Math.abs(h2 - 812) <= 1, `canvas fills 402x812 viewport (${h2}px)`);
+
+  // 5. Service worker: registers, controls the page, and serves fresh files.
+  p = await page({ width: 288, height: 512 });
+  await p.goto(base);
+  await p.evaluate(() => navigator.serviceWorker.ready);
+  await p.reload();
+  await p.waitForTimeout(400);
+  const controlled = await p.evaluate(() => !!navigator.serviceWorker.controller);
+  check(controlled, 'service worker controls the page');
+  check((await state(p)).scene === 'TitleScene', 'game boots under the service worker');
+  const marker = path.join(root, '__sw_probe.txt');
+  fs.writeFileSync(marker, 'v1');
+  const v1 = await p.evaluate(() => fetch('__sw_probe.txt').then((r) => r.text()));
+  fs.writeFileSync(marker, 'v2');
+  const v2 = await p.evaluate(() => fetch('__sw_probe.txt').then((r) => r.text()));
+  fs.unlinkSync(marker);
+  check(v1 === 'v1' && v2 === 'v2', 'updated files are served fresh, not from cache');
+  check(p.errors.length === 0, `no page errors (service worker) ${p.errors.join('; ')}`);
 } finally {
   await browser.close();
   server.close();

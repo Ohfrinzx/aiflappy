@@ -84,3 +84,8 @@ async function boot() {
 }
 
 boot();
+
+// Keeps the game up to date (and playable offline); see sw.js.
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}

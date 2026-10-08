@@ -124,3 +124,9 @@ Everything is adjustable in `src/config.js`.
   clean edges.
 - Sounds are pre-rendered to audio buffers on the first tap, so each sound
   effect is a single, cheap playback.
+- A service worker (`sw.js`) checks for new files on every launch, so a fresh
+  deploy shows up on the next open instead of after GitHub Pages' 10-minute
+  cache. It also keeps a copy for offline play.
+- Home-screen app on iPhone: iOS reads the status-bar setting when the icon is
+  added. If you added it before the edge-to-edge update, delete the icon and
+  add it again to draw under the status bar.
