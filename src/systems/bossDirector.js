@@ -95,6 +95,10 @@ export class BossDirector {
       const w = Math.round((inner * b.hp) / b.maxHp);
       r.rect(x + 2, y + 2, w, frame.height - 4, '#f83800');
       r.rect(x + 2, y + 2, w, 2, '#ff9a6a');
+      // Phase thresholds as notches.
+      for (const m of b.hpMarks ?? []) {
+        r.rect(x + 2 + Math.round((inner * m) / b.maxHp) - 1, y + 2, 2, frame.height - 4, '#3a2530');
+      }
     }
   }
 }

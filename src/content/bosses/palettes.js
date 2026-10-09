@@ -12,3 +12,13 @@ export const KING_CROW_PALETTE = {
   feather: '#6a5596',
   featherDark: '#3e2f5c',
 };
+
+// Phase 3 ("enraged") recolour.
+export const KING_CROW_RAGE_PALETTE = {
+  ...KING_CROW_PALETTE,
+  body: '#7a2638',
+  shade: '#541626',
+  belly: '#b4505a',
+  wing: '#923044',
+  eye: '#ffe000',
+};

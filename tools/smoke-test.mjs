@@ -81,7 +81,7 @@ try {
   }, 30));
   let sawFight = false;
   let won = false;
-  for (let i = 0; i < 120 && !won; i++) {
+  for (let i = 0; i < 300 && !won; i++) {
     await p.waitForTimeout(1000);
     const s = await p.evaluate(() => { const c = window.__game.scenes.current; return { boss: c.bosses.state, victory: c.victory, score: c.score }; });
     sawFight ||= s.boss === 'fight';

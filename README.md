@@ -63,10 +63,17 @@ Mobile tip: use "Add to Home Screen" to get fullscreen without the browser bars.
 After the 100th pipe, the pipes stop and a **WARNING** flashes. Then King Crow flies in.
 
 - **How to damage it:** it spits golden orbs. Fly into one and the orb shoots
-  back at the boss. 6 hits wins, and each hit is +1 score.
-- **Phase 1:** aimed feather volleys, feather fans, and fast "pipe walls".
-- **Phase 2 (half health):** everything gets faster and denser. It adds a charge
-  attack: a red lane shows its line first, then it dashes across the screen.
+  back at the boss. 10 hits wins, and each hit is +1 score.
+- **Phase 1 (10–7 HP):** aimed feather volleys, wide feather fans, fast pipe
+  walls, and a charge. A red lane shows the charge's line first.
+- **Phase 2 (6–4 HP):** everything is faster and denser. Aimed shots lead your
+  movement, pipe-wall gaps slide up and down, and feathers rain from the sky.
+- **Phase 3 (3–1 HP, enraged and red):** back-to-back charges. It keeps
+  shooting during pipe walls and feather rain.
+- **Each phase change** bursts a ring of feathers in every direction. The
+  notches on the health bar mark where the phases change.
+- **Difficulty knobs:** every number is in `CONFIG.bosses.kingCrow`
+  (`src/config.js`), with the old easier values in comments.
 - **Winning** shows a Victory screen and the gold crown "champion" medal. To keep
   the endless run going after the win instead, set
   `CONFIG.bosses.afterDefeat = 'continue'` in `src/config.js`.

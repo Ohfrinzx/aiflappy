@@ -9,7 +9,7 @@ import { makeKingCrow, makeFeather, makeOrb, makeHpFrame } from './boss.js';
 import { THEMES } from '../content/themes.js';
 import { BIRDS } from '../content/birds.js';
 import { MEDALS } from '../content/medals.js';
-import { KING_CROW_PALETTE } from '../content/bosses/palettes.js';
+import { KING_CROW_PALETTE, KING_CROW_RAGE_PALETTE } from '../content/bosses/palettes.js';
 import { VERSION } from '../version.js';
 import { renderText } from './font.js';
 
@@ -33,6 +33,7 @@ export function buildProceduralSprites() {
   const crow = makeKingCrow(KING_CROW_PALETTE);
   crow.frames.forEach((c, i) => (s[`kingcrow-${i}`] = c));
   crow.hurt.forEach((c, i) => (s[`kingcrow-hurt-${i}`] = c));
+  makeKingCrow(KING_CROW_RAGE_PALETTE).frames.forEach((c, i) => (s[`kingcrow-rage-${i}`] = c));
   s.feather = makeFeather(KING_CROW_PALETTE);
   makeOrb().forEach((c, i) => (s[`orb-${i}`] = c));
   s.hpbar = makeHpFrame();

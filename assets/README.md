@@ -42,6 +42,7 @@ drop straight in.
 | `button-pause`, `button-resume` | 26×28 | Pause / resume buttons |
 | `kingcrow-0` … `kingcrow-3` | 96×80 | Boss: wing up / down, then wing up / down with beak open |
 | `kingcrow-hurt-0` … `-3` | 96×80 | Boss hit-flash frames |
+| `kingcrow-rage-0` … `-3` | 96×80 | Boss phase-3 (enraged) frames |
 | `feather` | 22×10 | Boss projectile (points left) |
 | `orb-0` … `orb-3` | 22×22 | Golden orb frames |
 | `hpbar` | 124×12 | Boss health bar frame |

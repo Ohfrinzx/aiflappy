@@ -66,6 +66,36 @@ export const CONFIG = {
   bosses: {
     encounters: [{ at: 100, id: 'kingCrow' }],
     afterDefeat: 'end',
+
+    // King Crow difficulty. Arrays are per phase [1, 2, 3]; phase 2 starts at
+    // phaseAt[0] HP, phase 3 ("enraged") at phaseAt[1]. Comments show the
+    // original easier values (v1.3 and earlier had only 2 phases).
+    kingCrow: {
+      hp: 10, // was 6
+      phaseAt: [6, 3], // was a single change at 3 HP
+      volleyShots: [4, 6, 8], // was [3, 5]
+      volleySpeed: [220, 260, 300], // was [190, 230]
+      volleyGap: [0.22, 0.15, 0.1], // pause between shots, was [0.3, 0.15]
+      volleyLead: [0, 0.5, 0.8], // how much it aims ahead of your movement (was 0)
+      fanCount: [5, 7, 9], // feathers per wave, was [3, 5]
+      fanWaves: [3, 4, 5], // was [2, 3]
+      fanSpeed: [160, 180, 200], // was [150, 170]
+      fanSpread: [50, 60, 72], // total angle in degrees, was [44, 56]
+      wallPipes: [4, 5, 6], // was [3, 4]
+      wallSpeed: [165, 185, 205], // was [155, 175]
+      wallGap: [106, 100, 96], // was 112
+      wallSway: [0, 22, 30], // gaps slide up/down (px), was 0
+      wallSniping: [false, false, true], // stays on screen shooting during walls
+      chargeTrack: [0.75, 0.6, 0.5], // seconds it follows you before locking
+      chargeLock: [0.35, 0.3, 0.25], // warning time after locking
+      chargeSpeed: [560, 620, 700], // was 560 (phase 2 only)
+      chargeCount: [1, 1, 2], // back-to-back dashes
+      rainCount: [0, 14, 22], // falling feathers (new attack, phases 2-3)
+      rainSpeed: [0, 240, 280],
+      rainSniping: [false, false, true], // also shoots aimed feathers during rain
+      orbSpeed: [130, 145, 160], // was [100, 115]
+      restAfterOrb: [0.8, 0.6, 0.45], // was [1.4, 1.0]
+    },
   },
 
   ui: {

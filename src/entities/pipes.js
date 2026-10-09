@@ -27,8 +27,9 @@ export class PipeField {
     return lo + randInt(0, Math.floor(g * this.cfg.gapRangeFrac - gap));
   }
 
-  add({ x, gapY, gap = this.cfg.gap, speed = this.cfg.speed, scores = true }) {
-    const p = { x, px: x, gapY, gap, speed, scores, scored: false };
+  // sway: optional { amp, speed } makes the gap slide up and down (boss walls).
+  add({ x, gapY, gap = this.cfg.gap, speed = this.cfg.speed, scores = true, sway = null }) {
+    const p = { x, px: x, gapY, pgapY: gapY, baseGapY: gapY, gap, speed, scores, scored: false, sway, t: 0 };
     this.list.push(p);
     return p;
   }
@@ -47,6 +48,11 @@ export class PipeField {
     for (const p of this.list) {
       p.px = p.x;
       p.x -= p.speed * dt;
+      p.pgapY = p.gapY;
+      if (p.sway) {
+        p.t += dt;
+        p.gapY = p.baseGapY + Math.sin(p.t * p.sway.speed) * p.sway.amp;
+      }
       if (p.x > -w) {
         this.list[n++] = p;
         if (p.scores) last = p;
@@ -93,8 +99,9 @@ export class PipeField {
     const img = this.img;
     for (const p of this.list) {
       const x = lerp(p.px, p.x, alpha);
-      r.drawFlippedY(img, x, p.gapY - img.height);
-      r.draw(img, x, p.gapY + p.gap);
+      const gy = lerp(p.pgapY, p.gapY, alpha);
+      r.drawFlippedY(img, x, gy - img.height);
+      r.draw(img, x, gy + p.gap);
     }
   }
 }
