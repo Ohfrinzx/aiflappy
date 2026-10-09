@@ -1,13 +1,12 @@
 // Headless smoke test: serves the repo, drives the game in Chromium and fails
 // on any page error or broken flow. Run: node tools/smoke-test.mjs
 // Needs Playwright (npm i -g playwright, or set PLAYWRIGHT_PATH).
-import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createStaticServer } from './serve.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const TYPES = { '.html': 'text/html', '.txt': 'text/plain', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
 
 async function loadPlaywright() {
   const candidates = [process.env.PLAYWRIGHT_PATH, 'playwright', '/opt/node22/lib/node_modules/playwright/index.mjs'].filter(Boolean);
@@ -21,17 +20,8 @@ async function loadPlaywright() {
   throw new Error('Playwright not found');
 }
 
-const server = http.createServer((req, res) => {
-  const file = path.join(root, decodeURIComponent(new URL(req.url, 'http://x').pathname));
-  const target = file.endsWith('/') ? path.join(file, 'index.html') : file;
-  if (!target.startsWith(root) || !fs.existsSync(target)) {
-    res.writeHead(404).end();
-    return;
-  }
-  // Same caching as GitHub Pages, so the service-worker freshness check is real.
-  res.writeHead(200, { 'Content-Type': TYPES[path.extname(target)] ?? 'application/octet-stream', 'Cache-Control': 'max-age=600' });
-  fs.createReadStream(target).pipe(res);
-});
+// Same caching as GitHub Pages, so the service-worker freshness check is real.
+const server = createStaticServer({ root, cacheControl: 'max-age=600' });
 await new Promise((r) => server.listen(0, r));
 const base = `http://localhost:${server.address().port}/`;
 

@@ -9,7 +9,7 @@ GitHub Pages from `main`. See README.md for the architecture.
   everything passes, merge into `main` and push. No need to ask first. Never
   merge changes that fail testing; report the failure instead.
 - Testing before a merge means all of:
-  1. `node tools/smoke-test.mjs` passes. It's a headless Chromium run of the
+  1. `npm test` (`node tools/smoke-test.mjs`) passes. It's a headless Chromium run of the
      title → play → game over flow, the full boss fight to victory, and the
      phone viewport plus touch input.
   2. A lint pass shows no unused or undefined identifiers.
@@ -20,6 +20,9 @@ GitHub Pages from `main`. See README.md for the architecture.
   owner can confirm which build their phone is running.
 
 ## Notes
+
+- Local server: `npm run dev` (zero-dependency, `tools/dev.mjs`); keep
+  `package.json` `version` in sync with `src/version.js`.
 
 - Testing shortcuts: `?start=N` (begin at score N), `?god`, `?play`.
 - `window.__game` exposes the running game for console / test automation.

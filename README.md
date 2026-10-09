@@ -14,11 +14,20 @@ boss fight after pipe 100.
 
 ## Play locally
 
-ES modules need a web server (opening `index.html` as a file won't work):
+Needs [Node.js](https://nodejs.org) 18 or newer. There are no dependencies,
+so `npm install` is optional.
 
 ```sh
-npx serve .        # or: python3 -m http.server
+npm run dev
 ```
+
+Then open http://localhost:8080 (if that port is busy, it uses the next free
+one). It also prints a `Network:` address: open that on your phone while it's on
+the same Wi-Fi to test on a real device. Edits show up on refresh. Stop the
+server with Ctrl+C.
+
+Opening `index.html` directly as a file won't work: the browser blocks ES modules
+on `file://`. Any static server works too (`npx serve .`, `python -m http.server`).
 
 Testing shortcuts (URL flags):
 
