@@ -37,6 +37,8 @@ export class PlayScene {
     this.panel = null;
     this.victory = false;
     this.queuedTap = false; // taps are applied at the next simulation step
+    this.lives = null; // player lives; only active during boss fights
+    this.invulnT = 0;
     this.pauseButton = new Button(sp, 'button-pause', 10, 10, () => this.setPaused(true));
     this.resumeButton = new Button(sp, 'button-resume', 10, 10, () => this.setPaused(false));
   }
@@ -87,14 +89,31 @@ export class PlayScene {
     this.game.audio.play('point');
   }
 
+  // During a boss fight a hit costs a life instead of ending the run.
+  loseLife(cause) {
+    const g = this.game;
+    this.lives--;
+    this.invulnT = CONFIG.bosses.invulnTime;
+    this.bird.blink = this.invulnT;
+    if (cause === 'ground') this.bird.bounce();
+    g.audio.play('hit');
+    g.renderer.flash(0.15, 0.5);
+    g.renderer.shake(0.3, 4);
+  }
+
   die(cause) {
     if (this.game.params.god) {
       if (cause === 'ground') this.bird.vy = this.game.config.bird.flapVelocity; // bounce
       return;
     }
+    if (this.lives > 1 && this.bosses.state === 'fight') {
+      this.loseLife(cause);
+      return;
+    }
     const g = this.game;
     this.state = 'dying';
     this.deadT = 0;
+    this.bird.blink = 0;
     this.bird.kill(cause === 'ground');
     this.pipes.moving = false;
     this.ground.moving = false;
@@ -105,6 +124,9 @@ export class PlayScene {
   }
 
   onBossDefeated() {
+    this.lives = null; // back to one-hit for any pipes that follow
+    this.invulnT = 0;
+    this.bird.blink = 0;
     if (CONFIG.bosses.afterDefeat === 'end') {
       this.victory = true;
       this.state = 'dying'; // reuse the "wait, then show panel" path
@@ -171,6 +193,14 @@ export class PlayScene {
         const passed = this.pipes.collectPassed(bird);
         if (passed) this.addScore(passed);
 
+        if (this.bosses.state === 'fight' && this.lives === null) this.lives = CONFIG.bosses.playerLives;
+        if (this.invulnT > 0) {
+          this.invulnT -= dt;
+          bird.blink = Math.max(0, this.invulnT);
+          if (bird.hitsGround()) bird.bounce(); // can't lose a life while blinking
+          break;
+        }
+
         if (bird.hitsGround()) this.die('ground');
         else if (this.pipes.collides(bird)) this.die('pipe');
         else if (this.hazards.collides(bird)) this.die('hazard');
@@ -224,7 +254,16 @@ export class PlayScene {
       }
     }
 
-    this.bosses.renderHud(r);
+    if (this.state !== 'over') this.bosses.renderHud(r); // keep the panel clear
+
+    // Player lives (boss fights only), top-right.
+    if (this.lives !== null && this.state === 'playing') {
+      const full = sp.get('heart');
+      for (let i = 0; i < CONFIG.bosses.playerLives; i++) {
+        const img = i < this.lives ? full : sp.get('heart-empty');
+        r.draw(img, W - 10 - (CONFIG.bosses.playerLives - i) * (full.width + 4), 12);
+      }
+    }
 
     if (this.state === 'playing' && CONFIG.ui.showPauseButton) {
       if (this.paused) {

@@ -99,6 +99,16 @@ export class BossDirector {
       for (const m of b.hpMarks ?? []) {
         r.rect(x + 2 + Math.round((inner * m) / b.maxHp) - 1, y + 2, 2, frame.height - 4, '#3a2530');
       }
+      // Remaining boss lives (health bars) as crowns under the bar.
+      if (b.maxLives > 1) {
+        const pip = sp.get('lifepip');
+        const total = b.maxLives * (pip.width + 4) - 4;
+        let px = Math.round((CONFIG.width - total) / 2);
+        for (let i = 0; i < b.maxLives; i++) {
+          r.draw(i < b.lives ? pip : sp.get('lifepip-empty'), px, y + frame.height + 4);
+          px += pip.width + 4;
+        }
+      }
     }
   }
 }

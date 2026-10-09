@@ -22,6 +22,7 @@ export class Bird {
     this.sinceFlap = 0;
     this.flapped = false;
     this.grounded = false;
+    this.blink = 0; // >0 while invincible after losing a life
     this.px = x;
     this.py = y;
     this.prot = 0;
@@ -68,6 +69,14 @@ export class Bird {
     this.sinceFlap = 0;
     this.flapped = true;
     return true;
+  }
+
+  // Survived a hit: optional bounce (used after touching the ground).
+  bounce() {
+    this.y = Math.min(this.y, CONFIG.groundY - this.h - 2);
+    this.vy = this.cfg.flapVelocity * 1.15;
+    this.rot = this.cfg.tiltUp;
+    this.sinceFlap = 0;
   }
 
   kill(onGround) {
@@ -139,6 +148,7 @@ export class Bird {
     const y = lerp(this.py, this.y, alpha);
     const rot = lerp(this.prot, this.rot, alpha);
     const img = this.img;
-    r.drawRotated(img, x + img.width / 2, y + img.height / 2, rot);
+    const a = this.blink > 0 && Math.floor(this.blink * 12) % 2 === 0 ? 0.25 : 1;
+    r.drawRotated(img, x + img.width / 2, y + img.height / 2, rot, a);
   }
 }

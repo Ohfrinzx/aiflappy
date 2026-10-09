@@ -150,3 +150,21 @@ export function makeTutorial() {
   p.blit(tap, 39, 30);
   return p.toCanvas();
 }
+
+const HEART = ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...'];
+const PIP = ['#.#.#', '#####', '#####'];
+
+// Player life hearts and boss life crowns (filled / empty).
+export function makeLifeIcons() {
+  const icon = (map, fill, shine) => {
+    const p = new Pix(map[0].length + 2, map.length + 2).map(map, { '#': fill }, 1, 1);
+    if (shine) p.set(2, 2, shine);
+    return p.outline(PAL.outline).toCanvas();
+  };
+  return {
+    heart: icon(HEART, '#f83800', '#ffb0a0'),
+    'heart-empty': icon(HEART, '#6b5a60'),
+    lifepip: icon(PIP, '#f8d030', '#fff1a8'),
+    'lifepip-empty': icon(PIP, '#6b5a60'),
+  };
+}

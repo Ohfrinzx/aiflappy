@@ -3,7 +3,7 @@
 import { makeBackground, makeGround, makePipe } from './world.js';
 import { makeBirdFrames } from './birds.js';
 import {
-  makeTitleTexts, makeDigits, makePanel, makeMedal, makeButtons, makeBadgeNew, makeSparkles, makeTutorial,
+  makeTitleTexts, makeDigits, makePanel, makeMedal, makeButtons, makeBadgeNew, makeSparkles, makeTutorial, makeLifeIcons,
 } from './ui.js';
 import { makeKingCrow, makeFeather, makeOrb, makeHpFrame } from './boss.js';
 import { THEMES } from '../content/themes.js';
@@ -29,6 +29,7 @@ export function buildProceduralSprites() {
   s.new = makeBadgeNew();
   makeSparkles().forEach((c, i) => (s[`sparkle-${i}`] = c));
   s.tutorial = makeTutorial();
+  Object.assign(s, makeLifeIcons());
 
   const crow = makeKingCrow(KING_CROW_PALETTE);
   crow.frames.forEach((c, i) => (s[`kingcrow-${i}`] = c));

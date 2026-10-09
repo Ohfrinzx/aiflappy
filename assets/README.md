@@ -46,6 +46,8 @@ drop straight in.
 | `feather` | 22×10 | Boss projectile (points left) |
 | `orb-0` … `orb-3` | 22×22 | Golden orb frames |
 | `hpbar` | 124×12 | Boss health bar frame |
+| `lifepip`, `lifepip-empty` | 14×10 | Boss lives (crowns under the health bar) |
+| `heart`, `heart-empty` | 18×16 | Your lives during boss fights (top-right) |
 
 ## Sounds (`assets/audio/<name>.ogg|.wav|.mp3`)
 

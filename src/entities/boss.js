@@ -6,11 +6,14 @@ import { lerp } from '../core/math.js';
 import { masksOverlap } from '../core/collision.js';
 
 export class Boss {
-  constructor(scene, { hp = 6, x = CONFIG.width + 60, y = 160 } = {}) {
+  constructor(scene, { hp = 6, lives = 1, x = CONFIG.width + 60, y = 160 } = {}) {
     this.scene = scene;
     this.sprites = scene.game.sprites;
     this.maxHp = hp;
     this.hp = hp;
+    this.maxLives = lives; // health bars
+    this.lives = lives;
+    this.reviving = false; // true while refilling a health bar (invulnerable)
     this.ax = x; // anchor position (eased toward tx, ty)
     this.ay = y;
     this.tx = x;
@@ -30,6 +33,20 @@ export class Boss {
 
   // Override: main behaviour generator.
   *behavior() {}
+
+  // Override: revive sequence (runs when a health bar empties but lives remain).
+  // The default just refills HP; subclasses can add a show.
+  *revive() {
+    this.hp = this.maxHp;
+    yield 0.5;
+  }
+
+  *reviveThenFight() {
+    yield* this.revive();
+    this.hp = this.maxHp;
+    this.reviving = false;
+    yield* this.behavior();
+  }
 
   // Override: defeat sequence generator; must end by setting this.finished.
   *defeat() {
@@ -58,15 +75,22 @@ export class Boss {
   }
 
   hit(dmg = 1) {
-    if (this.defeated) return;
+    if (this.defeated || this.reviving) return;
     this.hp = Math.max(0, this.hp - dmg);
     this.hurtT = 0.18;
     this.onHit?.();
     if (this.hp === 0) {
-      this.defeated = true;
       this.waitT = 0;
       this.waitFn = null;
-      this.script = this.defeat();
+      if (this.lives > 1) {
+        this.lives--;
+        this.reviving = true;
+        this.script = this.reviveThenFight();
+      } else {
+        this.lives = 0;
+        this.defeated = true;
+        this.script = this.defeat();
+      }
     }
   }
 
@@ -128,7 +152,7 @@ export class Boss {
   }
 
   collides(bird) {
-    if (this.defeated) return false;
+    if (this.defeated || this.reviving) return false;
     return masksOverlap(bird.mask, bird.x, bird.y, this.sprites.mask(this.frameName), this.x, this.y);
   }
 

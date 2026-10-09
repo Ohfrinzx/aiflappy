@@ -4,6 +4,7 @@
 //      walls, and feather rain from above
 //   3 (enraged, red): back-to-back charges, it snipes during pipe walls,
 //      and a feather ring bursts out at each phase change
+// It has several lives (health bars); each one restarts at phase 1.
 // Damage: it drops golden orbs; fly into one and it fires back at the boss.
 import { CONFIG } from '../../config.js';
 import { clamp, rand, weightedPick, DEG } from '../../core/math.js';
@@ -22,7 +23,7 @@ const ATTACKS = [
 
 export class KingCrow extends Boss {
   constructor(scene) {
-    super(scene, { hp: T.hp, x: CONFIG.width + 40, y: 150 });
+    super(scene, { hp: T.hp, lives: T.lives, x: CONFIG.width + 40, y: 150 });
     this.mouthOpen = false;
     this.charging = false;
     this.chargeSpeed = 0;
@@ -60,6 +61,11 @@ export class KingCrow extends Boss {
     this.scene.game.audio.play(name);
   }
 
+  hit(dmg) {
+    this.phaseBefore = this.phase;
+    super.hit(dmg);
+  }
+
   onHit() {
     this.sfx('bossHit');
     this.scene.game.renderer.shake(0.2, 3);
@@ -68,7 +74,8 @@ export class KingCrow extends Boss {
     });
     this.scene.addScore(1);
     // hp is already reduced here, so landing exactly on a threshold = new phase.
-    if (this.hp > 0 && T.phaseAt.includes(this.hp)) this.enrage(this.phase);
+    // (Damage above 1 can skip past a threshold, so compare phases instead.)
+    if (this.hp > 0 && this.phase !== this.phaseBefore) this.enrage(this.phase);
   }
 
   // Phase change: roar, shake, and a ring of feathers in every direction.
@@ -263,7 +270,8 @@ export class KingCrow extends Boss {
   absorb(orb) {
     orb.collected = true;
     this.sfx('orb');
-    this.scene.hazards.add(new Bolt(this.sprites, orb.x, orb.y, this, () => this.hit(1)));
+    // Damage per hit is CONFIG.bosses.kingCrow.damagePerHit (src/config.js).
+    this.scene.hazards.add(new Bolt(this.sprites, orb.x, orb.y, this, () => this.hit(T.damagePerHit)));
   }
 
   move(dt) {
@@ -284,6 +292,39 @@ export class KingCrow extends Boss {
     }
     super.move(dt);
     if (this.telegraph === 2) this.x += Math.round(rand(-2, 2));
+  }
+
+  // A health bar emptied but lives remain: clear the screen, roar, refill.
+  *revive() {
+    const s = this.scene;
+    this.charging = false;
+    this.telegraph = 0;
+    this.mouthOpen = true;
+    this.lastAttack = null;
+    s.hazards.clear();
+    s.pipes.list = s.pipes.list.filter((p) => p.scores);
+    if (this.ax < -40 || this.ax > CONFIG.width) {
+      this.ax = CONFIG.width + 40; // was mid-charge off screen: come back from the right
+      this.ay = 150;
+    }
+    this.tx = HOME_X;
+    this.ty = 150;
+    this.ease = 2;
+    this.sfx('explode');
+    s.game.renderer.flash(0.3, 0.6);
+    s.game.renderer.shake(0.4, 4);
+    s.particles.burst(this.cx, this.cy, {
+      count: 24, colors: ['#ffffff', '#fde680', '#f8b800', '#5c4a82'], speed: 200, life: 0.8, size: 3,
+    });
+    yield 0.8;
+    this.sfx('roar');
+    for (let i = 1; i <= 20; i++) {
+      this.hp = Math.ceil((this.maxHp * i) / 20); // bar visibly refills
+      yield 0.05;
+    }
+    this.mouthOpen = false;
+    this.ease = 3.5;
+    yield 0.4;
   }
 
   *defeat() {

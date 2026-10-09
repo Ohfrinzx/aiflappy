@@ -67,11 +67,18 @@ export const CONFIG = {
     encounters: [{ at: 100, id: 'kingCrow' }],
     afterDefeat: 'end',
 
+    // Lives you get during a boss fight (pipes outside bosses stay one-hit).
+    // Any hit, including touching the ground, costs one and bounces you up.
+    playerLives: 2,
+    invulnTime: 1.5, // seconds of blinking invincibility after losing a life
+
     // King Crow difficulty. Arrays are per phase [1, 2, 3]; phase 2 starts at
     // phaseAt[0] HP, phase 3 ("enraged") at phaseAt[1]. Comments show the
     // original easier values (v1.3 and earlier had only 2 phases).
     kingCrow: {
-      hp: 10, // was 6
+      damagePerHit: 1, // DAMAGE YOU DEAL: HP removed per caught orb
+      lives: 4, // health bars; each is a full `hp` bar (was 1)
+      hp: 10, // HP per health bar (was 6)
       phaseAt: [6, 3], // was a single change at 3 HP
       volleyShots: [4, 6, 8], // was [3, 5]
       volleySpeed: [220, 260, 300], // was [190, 230]

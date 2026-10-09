@@ -63,7 +63,16 @@ Mobile tip: use "Add to Home Screen" to get fullscreen without the browser bars.
 After the 100th pipe, the pipes stop and a **WARNING** flashes. Then King Crow flies in.
 
 - **How to damage it:** it spits golden orbs. Fly into one and the orb shoots
-  back at the boss. 10 hits wins, and each hit is +1 score.
+  back at the boss. Each hit is +1 score.
+- **Boss lives:** King Crow has **4 lives**, shown as crowns under its health
+  bar. Each life is a full 10 HP bar. When a bar empties it roars, clears the
+  screen and refills, then starts again from phase 1.
+- **Your lives:** you get **2 lives** during the fight, shown as hearts
+  top-right. Any hit costs one, including touching the ground (which also
+  bounces you back up), followed by 1.5 s of blinking invincibility. The pipes
+  before the boss stay one-hit, like the original.
+- **Damage per hit:** `damagePerHit` in `CONFIG.bosses.kingCrow`
+  (`src/config.js`). Lives and HP are set right next to it.
 - **Phase 1 (10–7 HP):** aimed feather volleys, wide feather fans, fast pipe
   walls, and a charge. A red lane shows the charge's line first.
 - **Phase 2 (6–4 HP):** everything is faster and denser. Aimed shots lead your
