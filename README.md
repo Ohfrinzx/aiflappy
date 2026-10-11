@@ -41,7 +41,9 @@ Testing shortcuts (URL flags):
 - `?nosound` mutes the game without saving the setting.
 - `?autoflap` makes the bird flap by itself with no touches (implies `?god`).
   `?input=pointer` reads touches through pointer events instead of touch
-  events. Both are for diagnosing stutter with `?perf`.
+  events, and `?input=none` ignores touches entirely. `?keepalive` runs a tiny
+  invisible animation so the display never idles. All of these are for
+  diagnosing stutter with `?perf`.
 
 ## Host on GitHub Pages
 

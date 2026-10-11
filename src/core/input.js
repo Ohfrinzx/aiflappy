@@ -10,8 +10,9 @@
 const TAP_KEYS = new Set(['Space', 'ArrowUp', 'KeyW', 'Enter', 'NumpadEnter']);
 
 export class Input {
-  // mode: 'touch' (default: passive touch events) or 'pointer' (pointer events
-  // for touch too; diagnostic, ?input=pointer).
+  // mode: 'touch' (default: passive touch events), 'pointer' (pointer events
+  // for touch too) or 'none' (no touch/pointer listeners at all); the last two
+  // are stutter diagnostics (?input=pointer / ?input=none).
   constructor(renderer, target = window, mode = 'touch') {
     this.mode = mode;
     this.renderer = renderer;
@@ -23,14 +24,13 @@ export class Input {
     this.lastTouch = -Infinity;
     this.handlerMs = 0; // slowest touch handler since last read (?perf)
 
-    if (mode === 'pointer') {
-      this.listenPointer(canvas, true);
-    } else this.listenTouch(canvas, passive);
+    if (mode === 'pointer') this.listenPointer(canvas, true);
+    else if (mode === 'touch') this.listenTouch(canvas, passive);
     // Mouse / pen (touch-generated pointer events are ignored: handled above).
     // Not registered at all on touch-only devices (phones): any extra pointer
     // listener can make Safari handle each touch synchronously.
     const hasMouse = window.matchMedia?.('(any-pointer: fine)').matches || !('ontouchstart' in window);
-    if (hasMouse && mode !== 'pointer') this.listenPointer(canvas);
+    if (hasMouse && mode === 'touch') this.listenPointer(canvas);
 
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     this.listenKeys(target);

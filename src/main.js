@@ -14,6 +14,16 @@ import { PlayScene } from './scenes/play.js';
 import { VERSION } from './version.js';
 import { PerfOverlay } from './ui/perfOverlay.js';
 
+// A near-invisible element spinning forever via a compositor (CSS) animation.
+function startKeepalive() {
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;background:#000;opacity:0.02;pointer-events:none;will-change:transform;animation:aiflappy-keepalive 1s linear infinite';
+  const style = document.createElement('style');
+  style.textContent = '@keyframes aiflappy-keepalive{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
+  document.head.appendChild(style);
+  document.body.appendChild(el);
+}
+
 // ?autoflap: keeps the bird hovering mid-screen with synthetic taps, so frame
 // pacing can be measured with no touch events at all.
 function autoFlap(scene, input) {
@@ -35,7 +45,10 @@ function readParams() {
     nosound: q.has('nosound'), // mute without saving the setting
     // Stutter diagnostics: ?input=pointer uses pointer events instead of touch
     // events; ?autoflap flaps automatically (no touches, implies ?god).
-    input: q.get('input') === 'pointer' ? 'pointer' : 'touch',
+    input: ['pointer', 'none'].includes(q.get('input')) ? q.get('input') : 'touch',
+    // ?keepalive runs a tiny compositor animation so the display never idles
+    // down (tests whether ProMotion refresh changes on touch cause hitches).
+    keepalive: q.has('keepalive'),
     autoflap,
   };
 }
@@ -75,6 +88,7 @@ async function boot() {
   };
 
   if (params.nosound) audio.muted = true;
+  if (params.keepalive) startKeepalive();
   input.onGesture(() => audio.unlock());
   const perf = params.perf ? new PerfOverlay() : null;
   if (perf) input.subscribe((evt) => evt.type === 'press' && perf.tap());
@@ -104,7 +118,7 @@ async function boot() {
       if (perf) {
         perf.record(dt, work, input.handlerMs);
         input.handlerMs = 0;
-        const mode = `input ${params.input}${params.autoflap ? ' (autoflap)' : ''}  audio ${audio.muted ? 'off' : audio.mode}`;
+        const mode = `input ${params.input}${params.autoflap ? ' (autoflap)' : ''}  audio ${audio.muted ? 'off' : audio.mode}${params.keepalive ? '  keepalive' : ''}`;
         perf.render(renderer, mode);
       }
     },
