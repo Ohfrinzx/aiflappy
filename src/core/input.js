@@ -18,12 +18,15 @@ export class Input {
     const canvas = renderer.canvas;
     const passive = { passive: true };
     this.lastTouch = -Infinity;
+    this.handlerMs = 0; // slowest touch handler since last read (?perf)
 
     // Touch (phones / tablets).
     canvas.addEventListener('touchstart', (e) => {
-      this.lastTouch = performance.now();
+      const t0 = performance.now();
+      this.lastTouch = t0;
       this.gesture();
       for (const t of e.changedTouches) this.pointer('press', t.clientX, t.clientY);
+      this.handlerMs = Math.max(this.handlerMs, performance.now() - t0); // for ?perf
     }, passive);
     const touchEnd = (e) => {
       this.lastTouch = performance.now();
@@ -34,24 +37,12 @@ export class Input {
     window.addEventListener('touchcancel', () => this.dispatch({ type: 'release', source: 'pointer', x: -1, y: -1 }), passive);
 
     // Mouse / pen (touch-generated pointer events are ignored: handled above).
-    const isTouchish = (e) => e.pointerType === 'touch' || performance.now() - this.lastTouch < 800;
-    canvas.addEventListener('pointerdown', (e) => {
-      if (isTouchish(e)) return;
-      e.preventDefault();
-      this.gesture();
-      this.pointer('press', e.clientX, e.clientY);
-    });
-    window.addEventListener('pointerup', (e) => {
-      if (isTouchish(e)) return;
-      this.gesture();
-      this.pointer('release', e.clientX, e.clientY);
-    });
-    window.addEventListener('pointercancel', (e) => {
-      if (!isTouchish(e)) this.dispatch({ type: 'release', source: 'pointer', x: -1, y: -1 });
-    });
+    // Not registered at all on touch-only devices (phones): any extra pointer
+    // listener can make Safari handle each touch synchronously.
+    const hasMouse = window.matchMedia?.('(any-pointer: fine)').matches || !('ontouchstart' in window);
+    if (hasMouse) this.listenPointer(canvas);
+
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-    // Safari pinch-zoom (only fires for multi-finger gestures, never on taps).
-    document.addEventListener('gesturestart', (e) => e.preventDefault());
 
     target.addEventListener('keydown', (e) => {
       if (TAP_KEYS.has(e.code)) {
@@ -80,6 +71,24 @@ export class Input {
 
   gesture() {
     this.gestureFns.forEach((fn) => fn());
+  }
+
+  listenPointer(canvas) {
+    const isTouchish = (e) => e.pointerType === 'touch' || performance.now() - this.lastTouch < 800;
+    canvas.addEventListener('pointerdown', (e) => {
+      if (isTouchish(e)) return;
+      e.preventDefault();
+      this.gesture();
+      this.pointer('press', e.clientX, e.clientY);
+    });
+    window.addEventListener('pointerup', (e) => {
+      if (isTouchish(e)) return;
+      this.gesture();
+      this.pointer('release', e.clientX, e.clientY);
+    });
+    window.addEventListener('pointercancel', (e) => {
+      if (!isTouchish(e)) this.dispatch({ type: 'release', source: 'pointer', x: -1, y: -1 });
+    });
   }
 
   pointer(type, clientX, clientY) {

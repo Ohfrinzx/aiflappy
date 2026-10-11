@@ -35,8 +35,9 @@ Testing shortcuts (URL flags):
 - `?god` makes you invincible (you bounce off the ground).
 - `?play` skips the title screen.
 - `?perf` shows a frame-time graph at the bottom. Green bars are on time, red
-  bars are slow frames, and yellow ticks mark your taps. Useful for spotting
-  stutter on a phone.
+  bars are slow frames, and yellow ticks mark your taps. The second line shows
+  the slowest touch handler and game update+draw time over your last 10 taps,
+  and whether sound runs through the `worklet` mixer or the `nodes` fallback.
 - `?nosound` mutes the game without saving the setting.
 
 ## Host on GitHub Pages

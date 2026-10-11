@@ -81,13 +81,14 @@ async function boot() {
       renderer.update(dt);
       scenes.update(dt);
     },
-    render(alpha, dt) {
+    render(alpha, dt, work) {
       renderer.begin();
       scenes.render(alpha);
       renderer.end();
       if (perf) {
-        perf.record(dt);
-        perf.render(renderer);
+        perf.record(dt, work, input.handlerMs);
+        input.handlerMs = 0;
+        perf.render(renderer, audio.mode);
       }
     },
   }).start();

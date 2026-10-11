@@ -27,6 +27,10 @@ GitHub Pages from `main`. See README.md for the architecture.
 - Testing shortcuts: `?start=N` (begin at score N), `?god`, `?play`,
   `?perf` (frame-time graph), `?nosound`.
 - Touch input must stay on *passive* listeners (see `src/core/input.js`);
-  non-passive touch handlers caused per-tap hitches on iOS.
+  non-passive touch handlers caused per-tap hitches on iOS. Pointer listeners
+  are only registered when a mouse/pen exists.
+- Sound effects play through an always-on AudioWorklet mixer
+  (`src/audio/mixer.worklet.js`); don't create audio nodes per sound on the
+  hot path.
 - `window.__game` exposes the running game for console / test automation.
 - All tunables live in `src/config.js`; content lives in `src/content/`.

@@ -8,6 +8,7 @@ export class Loop {
     this.acc = 0;
     this.last = 0;
     this.running = false;
+    this.work = 0;
     this.frame = this.frame.bind(this);
   }
 
@@ -23,11 +24,13 @@ export class Loop {
     const dt = Math.min((now - this.last) / 1000, 0.25);
     this.last = now;
     this.acc += dt;
+    const t0 = performance.now();
     while (this.acc >= this.step) {
       this.update(this.step);
       this.acc -= this.step;
     }
-    this.render(this.acc / this.step, dt);
+    this.render(this.acc / this.step, dt, this.work);
+    this.work = performance.now() - t0; // game work last frame (for ?perf)
     requestAnimationFrame(this.frame);
   }
 }

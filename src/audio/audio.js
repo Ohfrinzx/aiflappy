@@ -1,4 +1,7 @@
 // Sound playback: uses real files when enabled & present, otherwise the synth.
+// Sounds are pre-rendered to sample buffers and played through an always-on
+// AudioWorklet mixer (see mixer.worklet.js), so a flap only posts a message.
+// Falls back to buffer-source nodes where AudioWorklet isn't available.
 import { SYNTH } from './synth.js';
 
 // Drops trailing silence from a rendered buffer.
@@ -18,6 +21,8 @@ export class Audio {
     this.buffers = new Map();
     this.muted = muted;
     this.master = null;
+    this.mixer = null; // AudioWorkletNode once ready
+    this.inMixer = new Set(); // sound names loaded into the mixer
   }
 
   // Must be called from a user gesture (browser autoplay rules).
@@ -29,11 +34,46 @@ export class Audio {
       this.master = this.ctx.createGain();
       this.master.gain.value = this.muted ? 0 : 0.8;
       this.master.connect(this.ctx.destination);
-      // Render synth sounds to buffers once, off the tap that unlocked audio;
-      // real files (if any) then override.
-      window.setTimeout(() => this.prerender().then(() => this.cfg.useFiles && this.loadFiles()), 250);
+      // Build the mixer and render synth sounds off the tap that unlocked
+      // audio; real files (if any) then override.
+      window.setTimeout(async () => {
+        await this.startMixer();
+        await this.prerender();
+        if (this.cfg.useFiles) await this.loadFiles();
+      }, 250);
     }
     if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {});
+  }
+
+  get mode() {
+    return this.mixer ? 'worklet' : 'nodes';
+  }
+
+  async startMixer() {
+    if (!this.ctx.audioWorklet || typeof window.AudioWorkletNode !== 'function') return;
+    try {
+      await this.ctx.audioWorklet.addModule(new URL('./mixer.worklet.js', import.meta.url));
+      const node = new window.AudioWorkletNode(this.ctx, 'sfx-mixer', {
+        numberOfInputs: 0,
+        numberOfOutputs: 1,
+        outputChannelCount: [1],
+      });
+      node.connect(this.master);
+      this.mixer = node;
+      for (const [name, buf] of this.buffers) this.sendToMixer(name, buf);
+    } catch {
+      /* stay on buffer-source playback */
+    }
+  }
+
+  setBuffer(name, buf) {
+    this.buffers.set(name, buf);
+    if (this.mixer) this.sendToMixer(name, buf);
+  }
+
+  sendToMixer(name, buf) {
+    this.mixer.port.postMessage({ type: 'load', name, data: buf.getChannelData(0).slice() });
+    this.inMixer.add(name);
   }
 
   // Pre-renders each synth sound offline so playing one is a single
@@ -48,7 +88,7 @@ export class Audio {
         const off = new OAC(1, Math.ceil(rate * 1.6), rate);
         fn(off, off.destination, 0);
         const buf = await off.startRendering();
-        this.buffers.set(name, trim(this.ctx, buf));
+        this.setBuffer(name, trim(this.ctx, buf));
         await new Promise((r) => window.setTimeout(r, 16)); // one sound per frame-ish
       } catch {
         /* keep live synthesis for this sound */
@@ -65,7 +105,7 @@ export class Audio {
             const res = await fetch(`${this.cfg.audioDir}${name}.${ext}`);
             if (!res.ok) continue;
             const buf = await this.ctx.decodeAudioData(await res.arrayBuffer());
-            this.buffers.set(name, buf);
+            this.setBuffer(name, buf);
             return;
           } catch {
             /* try next extension */
@@ -82,6 +122,10 @@ export class Audio {
 
   play(name) {
     if (!this.ctx || this.muted) return;
+    if (this.mixer && this.inMixer.has(name)) {
+      this.mixer.port.postMessage({ type: 'play', name });
+      return;
+    }
     const t = this.ctx.currentTime;
     const buf = this.buffers.get(name);
     if (buf) {

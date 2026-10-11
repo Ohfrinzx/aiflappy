@@ -12,17 +12,38 @@ export class PerfOverlay {
     this.tapFrames = 0;
     this.tapHitches = 0;
     this.worst = 0;
+    // Recent samples (last 10 taps; the first tap is skipped because it
+    // includes one-time audio startup).
+    this.handlerRecent = [];
+    this.workTapRecent = [];
+    this.workOther = 0; // game work on non-tap frames (smoothed, ms)
+    this.seenFirstTap = false;
   }
 
   tap() {
     this.tapPending = true;
   }
 
-  record(dt) {
+  // dt: frame gap (s); work: game update+draw time of the previous frame (ms);
+  // handler: slowest touch handler since the last frame (ms).
+  record(dt, work = 0, handler = 0) {
     const ms = dt * 1000;
+    const push = (arr, v) => {
+      arr.push(v);
+      if (arr.length > 10) arr.shift();
+    };
+    if (this.tapPending) {
+      if (this.seenFirstTap) {
+        push(this.handlerRecent, handler);
+        push(this.workTapRecent, work);
+      }
+      this.seenFirstTap = true;
+    } else {
+      this.workOther = this.workOther * 0.95 + work * 0.05;
+    }
     this.gaps[this.i] = ms;
     this.taps[this.i] = this.tapPending ? 1 : 0;
-    if (this.tapPending) {
+    if (this.tapPending && this.handlerRecent.length) {
       this.tapFrames++;
       if (ms > 25) this.tapHitches++;
     }
@@ -31,7 +52,7 @@ export class PerfOverlay {
     this.i = (this.i + 1) % N;
   }
 
-  render(r) {
+  render(r, audioMode = '') {
     const ctx = r.ctx;
     const s = r.pixelScale;
     const x0 = 8;
@@ -39,7 +60,7 @@ export class PerfOverlay {
     ctx.setTransform(s, 0, 0, s, 0, r.offY * s);
     ctx.globalAlpha = 0.75;
     ctx.fillStyle = '#000';
-    ctx.fillRect(x0 - 4, y0 - 44, N * 2 + 8, 62);
+    ctx.fillRect(x0 - 4, y0 - 44, N * 2 + 8, 72);
     ctx.globalAlpha = 1;
     let sum = 0;
     for (let k = 0; k < N; k++) {
@@ -60,5 +81,8 @@ export class PerfOverlay {
     ctx.fillStyle = '#fff';
     ctx.font = '7px monospace';
     ctx.fillText(`${fps.toFixed(0)} fps  worst ${this.worst.toFixed(0)}ms  tap hitches ${this.tapHitches}/${this.tapFrames}`, x0, y0 + 12);
+    const f = (v) => v.toFixed(1);
+    const max = (a) => (a.length ? Math.max(...a) : 0);
+    ctx.fillText(`touch max ${f(max(this.handlerRecent))}ms  game tap ${f(max(this.workTapRecent))} / avg ${f(this.workOther)}ms  audio ${audioMode}`, x0, y0 + 22);
   }
 }

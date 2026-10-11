@@ -128,6 +128,34 @@ try {
   check(await waitFor(p, () => ['dying', 'over'].includes(window.__game.scenes.current.state), 15), 'running out of lives ends the run');
   check(p.errors.length === 0, `no page errors (player lives) ${p.errors.join('; ')}`);
 
+  // 2c. Mouse (desktop): clicking the Play button and then the screen.
+  p = await page({ width: 288, height: 512 });
+  await p.goto(base);
+  await p.waitForTimeout(400);
+  const btn = await p.evaluate(() => { const s = window.__game.scenes.current; const i = s.play.img; return { x: s.play.x + i.width / 2, y: s.play.y + i.height / 2 }; });
+  await p.mouse.click(btn.x, btn.y);
+  await p.waitForTimeout(900);
+  check((await state(p)).state === 'ready', 'mouse click on Play works');
+  await p.mouse.click(144, 300);
+  await p.waitForTimeout(100);
+  check((await state(p)).state === 'playing', 'mouse click starts the run');
+  check(p.errors.length === 0, `no page errors (mouse) ${p.errors.join('; ')}`);
+
+  // 3a. Phone: tapping the title-screen Play button (touch, passive listeners).
+  p = await page({ width: 402, height: 874 }, { dpr: 3, touch: true });
+  await p.goto(base);
+  await p.waitForTimeout(400);
+  const tb = await p.evaluate(() => {
+    const g = window.__game; const s = g.scenes.current; const r = g.renderer; const b = r.bounds; const i = s.play.img;
+    const gx = s.play.x + i.width / 2; const gy = s.play.y + i.height / 2;
+    return { x: b.left + (gx / r.w) * b.width, y: b.top + ((gy - r.viewTop) / r.viewH) * b.height };
+  });
+  await p.touchscreen.tap(tb.x, tb.y);
+  await p.waitForTimeout(900);
+  check((await state(p)).state === 'ready', 'touch tap on Play button works');
+  const audioMode = await p.evaluate(async () => { await new Promise((r) => setTimeout(r, 1200)); return window.__game.audio.mode; });
+  check(audioMode === 'worklet', `audio plays through the always-on mixer (${audioMode})`);
+
   // 3. Phone: full-bleed view, touch input, pause.
   p = await page({ width: 402, height: 874 }, { dpr: 3, touch: true });
   await p.goto(`${base}?play`);
