@@ -38,6 +38,12 @@ export class Renderer {
   resize() {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+    // Ignore resize events that don't change anything (reallocating a
+    // full-screen canvas is expensive).
+    const key = `${vw}x${vh}@${dpr}`;
+    if (key === this.sizeKey) return;
+    this.sizeKey = key;
     const tallH = (this.w * vh) / vw;
     if (tallH >= this.h && tallH <= this.w * MAX_ASPECT) {
       // Phone portrait: fill the screen exactly.
@@ -59,7 +65,6 @@ export class Renderer {
 
     const cssW = Math.round(this.w * this.scale);
     const cssH = Math.round(this.viewH * this.scale);
-    const dpr = window.devicePixelRatio || 1;
     this.canvas.style.width = `${cssW}px`;
     this.canvas.style.height = `${cssH}px`;
     this.canvas.width = Math.round(cssW * dpr);
@@ -97,31 +102,30 @@ export class Renderer {
     if (this.flashAlpha > 0) this.flashAlpha = Math.max(0, this.flashAlpha - this.flashDecay * dt);
   }
 
+  // Kept deliberately cheap for mobile GPUs: no clip path, and the full-canvas
+  // clear only runs while shaking (scenes paint every pixel otherwise).
   begin() {
     const ctx = this.ctx;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     let ox = 0;
     let oy = 0;
     if (this.shakeTime > 0) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
       ox = Math.round((Math.random() * 2 - 1) * this.shakeAmount);
       oy = Math.round((Math.random() * 2 - 1) * this.shakeAmount);
     }
     const s = this.pixelScale;
     ctx.setTransform(s, 0, 0, s, ox * s, (oy + this.offY) * s);
+    // Sprites come pre-upscaled ~4x, so plain bilinear is visually identical to
+    // 'high' here and much cheaper on Safari.
     ctx.imageSmoothingEnabled = this.smooth;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, this.viewTop, this.w, this.viewH);
-    ctx.clip();
+    ctx.imageSmoothingQuality = 'low';
   }
 
   end() {
     const ctx = this.ctx;
-    ctx.restore();
     const y = this.viewTop - 8;
     const h = this.viewH + 16;
     if (this.flashAlpha > 0) this.rect(-8, y, this.w + 16, h, '#fff', this.flashAlpha);

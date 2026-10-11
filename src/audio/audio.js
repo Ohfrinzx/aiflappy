@@ -29,8 +29,9 @@ export class Audio {
       this.master = this.ctx.createGain();
       this.master.gain.value = this.muted ? 0 : 0.8;
       this.master.connect(this.ctx.destination);
-      // Render synth sounds to buffers once; real files (if any) then override.
-      this.prerender().then(() => this.cfg.useFiles && this.loadFiles());
+      // Render synth sounds to buffers once, off the tap that unlocked audio;
+      // real files (if any) then override.
+      window.setTimeout(() => this.prerender().then(() => this.cfg.useFiles && this.loadFiles()), 250);
     }
     if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {});
   }
@@ -48,6 +49,7 @@ export class Audio {
         fn(off, off.destination, 0);
         const buf = await off.startRendering();
         this.buffers.set(name, trim(this.ctx, buf));
+        await new Promise((r) => window.setTimeout(r, 16)); // one sound per frame-ish
       } catch {
         /* keep live synthesis for this sound */
       }

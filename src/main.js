@@ -1,6 +1,6 @@
 // Entry point: wires up engine services and starts on the title screen.
 // URL flags (for testing): ?start=95 begins a run at score 95, ?god disables death,
-// ?play skips the title screen.
+// ?play skips the title screen, ?perf shows a frame-time graph, ?nosound mutes.
 import { CONFIG } from './config.js';
 import { Loop } from './core/loop.js';
 import { Renderer } from './core/renderer.js';
@@ -12,6 +12,7 @@ import { loadSprites } from './assets.js';
 import { TitleScene } from './scenes/title.js';
 import { PlayScene } from './scenes/play.js';
 import { VERSION } from './version.js';
+import { PerfOverlay } from './ui/perfOverlay.js';
 
 function readParams() {
   const q = new URLSearchParams(location.search);
@@ -19,6 +20,8 @@ function readParams() {
     start: Math.max(0, parseInt(q.get('start') ?? '0', 10) || 0),
     god: q.has('god'),
     play: q.has('play'),
+    perf: q.has('perf'), // frame-time graph for diagnosing stutter
+    nosound: q.has('nosound'), // mute without saving the setting
   };
 }
 
@@ -56,7 +59,10 @@ async function boot() {
     },
   };
 
+  if (params.nosound) audio.muted = true;
   input.onGesture(() => audio.unlock());
+  const perf = params.perf ? new PerfOverlay() : null;
+  if (perf) input.subscribe((evt) => evt.type === 'press' && perf.tap());
   input.subscribe((evt) => scenes.input(evt));
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) scenes.current?.onBlur?.();
@@ -75,10 +81,14 @@ async function boot() {
       renderer.update(dt);
       scenes.update(dt);
     },
-    render(alpha) {
+    render(alpha, dt) {
       renderer.begin();
       scenes.render(alpha);
       renderer.end();
+      if (perf) {
+        perf.record(dt);
+        perf.render(renderer);
+      }
     },
   }).start();
 

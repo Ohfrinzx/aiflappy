@@ -34,6 +34,10 @@ Testing shortcuts (URL flags):
 - `?start=95` starts a run at score 95, so the boss arrives after 5 pipes.
 - `?god` makes you invincible (you bounce off the ground).
 - `?play` skips the title screen.
+- `?perf` shows a frame-time graph at the bottom. Green bars are on time, red
+  bars are slow frames, and yellow ticks mark your taps. Useful for spotting
+  stutter on a phone.
+- `?nosound` mutes the game without saving the setting.
 
 ## Host on GitHub Pages
 

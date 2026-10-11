@@ -24,6 +24,9 @@ GitHub Pages from `main`. See README.md for the architecture.
 - Local server: `npm run dev` (zero-dependency, `tools/dev.mjs`); keep
   `package.json` `version` in sync with `src/version.js`.
 
-- Testing shortcuts: `?start=N` (begin at score N), `?god`, `?play`.
+- Testing shortcuts: `?start=N` (begin at score N), `?god`, `?play`,
+  `?perf` (frame-time graph), `?nosound`.
+- Touch input must stay on *passive* listeners (see `src/core/input.js`);
+  non-passive touch handlers caused per-tap hitches on iOS.
 - `window.__game` exposes the running game for console / test automation.
 - All tunables live in `src/config.js`; content lives in `src/content/`.
