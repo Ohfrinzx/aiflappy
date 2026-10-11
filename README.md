@@ -39,6 +39,9 @@ Testing shortcuts (URL flags):
   the slowest touch handler and game update+draw time over your last 10 taps,
   and whether sound runs through the `worklet` mixer or the `nodes` fallback.
 - `?nosound` mutes the game without saving the setting.
+- `?autoflap` makes the bird flap by itself with no touches (implies `?god`).
+  `?input=pointer` reads touches through pointer events instead of touch
+  events. Both are for diagnosing stutter with `?perf`.
 
 ## Host on GitHub Pages
 

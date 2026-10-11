@@ -46,6 +46,7 @@ export class Audio {
   }
 
   get mode() {
+    if (!this.ctx) return 'locked'; // needs a tap before the browser allows sound
     return this.mixer ? 'worklet' : 'nodes';
   }
 

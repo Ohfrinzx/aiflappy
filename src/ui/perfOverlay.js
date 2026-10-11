@@ -17,6 +17,8 @@ export class PerfOverlay {
     this.handlerRecent = [];
     this.workTapRecent = [];
     this.workOther = 0; // game work on non-tap frames (smoothed, ms)
+    this.otherFrames = 0;
+    this.otherHitches = 0;
     this.seenFirstTap = false;
   }
 
@@ -46,13 +48,16 @@ export class PerfOverlay {
     if (this.tapPending && this.handlerRecent.length) {
       this.tapFrames++;
       if (ms > 25) this.tapHitches++;
+    } else if (!this.tapPending && this.seenFirstTap) {
+      this.otherFrames++;
+      if (ms > 25) this.otherHitches++;
     }
     this.tapPending = false;
     this.worst = Math.max(this.worst * 0.995, ms);
     this.i = (this.i + 1) % N;
   }
 
-  render(r, audioMode = '') {
+  render(r, modeLabel = '') {
     const ctx = r.ctx;
     const s = r.pixelScale;
     const x0 = 8;
@@ -60,7 +65,7 @@ export class PerfOverlay {
     ctx.setTransform(s, 0, 0, s, 0, r.offY * s);
     ctx.globalAlpha = 0.75;
     ctx.fillStyle = '#000';
-    ctx.fillRect(x0 - 4, y0 - 44, N * 2 + 8, 72);
+    ctx.fillRect(x0 - 4, y0 - 44, N * 2 + 24, 82);
     ctx.globalAlpha = 1;
     let sum = 0;
     for (let k = 0; k < N; k++) {
@@ -83,6 +88,7 @@ export class PerfOverlay {
     ctx.fillText(`${fps.toFixed(0)} fps  worst ${this.worst.toFixed(0)}ms  tap hitches ${this.tapHitches}/${this.tapFrames}`, x0, y0 + 12);
     const f = (v) => v.toFixed(1);
     const max = (a) => (a.length ? Math.max(...a) : 0);
-    ctx.fillText(`touch max ${f(max(this.handlerRecent))}ms  game tap ${f(max(this.workTapRecent))} / avg ${f(this.workOther)}ms  audio ${audioMode}`, x0, y0 + 22);
+    ctx.fillText(`touch ${f(max(this.handlerRecent))}ms  game ${f(max(this.workTapRecent))}/${f(this.workOther)}ms  other slow ${this.otherHitches}/${this.otherFrames}`, x0, y0 + 22);
+    ctx.fillText(modeLabel, x0, y0 + 32);
   }
 }

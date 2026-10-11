@@ -25,7 +25,8 @@ GitHub Pages from `main`. See README.md for the architecture.
   `package.json` `version` in sync with `src/version.js`.
 
 - Testing shortcuts: `?start=N` (begin at score N), `?god`, `?play`,
-  `?perf` (frame-time graph), `?nosound`.
+  `?perf` (frame-time graph), `?nosound`, `?autoflap` (no-touch flapping),
+  `?input=pointer` (pointer events instead of touch events).
 - Touch input must stay on *passive* listeners (see `src/core/input.js`);
   non-passive touch handlers caused per-tap hitches on iOS. Pointer listeners
   are only registered when a mouse/pen exists.
