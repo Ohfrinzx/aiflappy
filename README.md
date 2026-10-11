@@ -42,8 +42,9 @@ Testing shortcuts (URL flags):
 - `?autoflap` makes the bird flap by itself with no touches (implies `?god`).
   `?input=pointer` reads touches through pointer events instead of touch
   events, and `?input=none` ignores touches entirely. `?keepalive` runs a tiny
-  invisible animation so the display never idles. All of these are for
-  diagnosing stutter with `?perf`.
+  invisible animation so the display never idles. `?fps=N` caps how many
+  frames per second are drawn (10–120); physics run at the same speed. All of
+  these are for diagnosing stutter with `?perf`.
 
 ## Host on GitHub Pages
 

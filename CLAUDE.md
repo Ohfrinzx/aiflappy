@@ -26,7 +26,11 @@ GitHub Pages from `main`. See README.md for the architecture.
 
 - Testing shortcuts: `?start=N` (begin at score N), `?god`, `?play`,
   `?perf` (frame-time graph), `?nosound`, `?autoflap` (no-touch flapping),
-  `?input=pointer|none`, `?keepalive` (stutter diagnostics).
+  `?input=pointer|none`, `?keepalive`, `?fps=N` (stutter diagnostics).
+- Known iOS issue: Safari's default "Prefer Page Rendering Updates near
+  60fps" flag causes a hitch on every touch on ProMotion iPhones (touch boost
+  re-phases the 60 fps cadence). Verified not fixable from page code
+  (keepalive, frame caps, input changes); turning the flag off fixes it.
 - Touch input must stay on *passive* listeners (see `src/core/input.js`);
   non-passive touch handlers caused per-tap hitches on iOS. Pointer listeners
   are only registered when a mouse/pen exists.

@@ -1,10 +1,14 @@
 // Frame-time graph for diagnosing stutter on a real device (?perf).
-// Each bar is one frame's gap; green <= 1/60 s, orange <= 1/40 s, red slower.
+// Each bar is one frame's gap: green = on time, orange = a bit late, red = a
+// hitch (more than 1.5x the target frame time, i.e. > 25 ms at 60 fps).
 // Yellow ticks mark frames where you tapped. Screenshot it and share.
 const N = 120;
 
 export class PerfOverlay {
-  constructor() {
+  // capFps: the ?fps cap if any; thresholds scale with the target frame time.
+  constructor(capFps = 0) {
+    this.target = capFps ? 1000 / capFps : 1000 / 60;
+    this.hitchMs = this.target * 1.5;
     this.gaps = new Float32Array(N);
     this.taps = new Uint8Array(N);
     this.i = 0;
@@ -47,10 +51,10 @@ export class PerfOverlay {
     this.taps[this.i] = this.tapPending ? 1 : 0;
     if (this.tapPending && this.handlerRecent.length) {
       this.tapFrames++;
-      if (ms > 25) this.tapHitches++;
+      if (ms > this.hitchMs) this.tapHitches++;
     } else if (!this.tapPending && this.seenFirstTap) {
       this.otherFrames++;
-      if (ms > 25) this.otherHitches++;
+      if (ms > this.hitchMs) this.otherHitches++;
     }
     this.tapPending = false;
     this.worst = Math.max(this.worst * 0.995, ms);
@@ -68,12 +72,16 @@ export class PerfOverlay {
     ctx.fillRect(x0 - 4, y0 - 44, N * 2 + 24, 82);
     ctx.globalAlpha = 1;
     let sum = 0;
+    let count = 0;
     for (let k = 0; k < N; k++) {
       const idx = (this.i + k) % N;
       const ms = this.gaps[idx];
-      sum += ms;
-      ctx.fillStyle = ms <= 17.5 ? '#4caf50' : ms <= 25 ? '#ff9800' : '#f44336';
-      const h = Math.min(40, ms);
+      if (ms > 0) {
+        sum += ms;
+        count++;
+      }
+      ctx.fillStyle = ms <= this.target * 1.05 ? '#4caf50' : ms <= this.hitchMs ? '#ff9800' : '#f44336';
+      const h = Math.max(0, Math.min(40, ms * (16.7 / this.target))); // on-time = line
       ctx.fillRect(x0 + k * 2, y0 - h, 2, h);
       if (this.taps[idx]) {
         ctx.fillStyle = '#ffeb3b';
@@ -81,8 +89,8 @@ export class PerfOverlay {
       }
     }
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.fillRect(x0, y0 - 16.7, N * 2, 0.5); // 60 fps line
-    const fps = sum > 0 ? (N * 1000) / sum : 0;
+    ctx.fillRect(x0, y0 - 16.7, N * 2, 0.5); // target frame time line
+    const fps = sum > 0 ? (count * 1000) / sum : 0;
     ctx.fillStyle = '#fff';
     ctx.font = '7px monospace';
     ctx.fillText(`${fps.toFixed(0)} fps  worst ${this.worst.toFixed(0)}ms  tap hitches ${this.tapHitches}/${this.tapFrames}`, x0, y0 + 12);

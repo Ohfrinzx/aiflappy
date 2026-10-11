@@ -1,8 +1,11 @@
 // Fixed-timestep loop: simulation runs at a constant rate regardless of the
 // display refresh rate; rendering interpolates between the last two steps.
+// maxFps (optional, ?fps=N test mode) caps how often frames are drawn.
 export class Loop {
-  constructor({ tickRate, update, render }) {
+  constructor({ tickRate, update, render, maxFps = 0 }) {
     this.step = 1 / tickRate;
+    this.interval = maxFps > 0 ? 1000 / maxFps : 0; // ms between drawn frames
+    this.nextDue = 0;
     this.update = update;
     this.render = render;
     this.acc = 0;
@@ -20,8 +23,19 @@ export class Loop {
 
   frame(now) {
     if (!this.running) return;
-    // Clamp long gaps (tab switch, breakpoint) so the sim never spirals.
-    const dt = Math.min((now - this.last) / 1000, 0.25);
+    if (this.interval) {
+      // Frame cap: skip this display refresh until the next frame is due.
+      // Keeps the long-run average at maxFps even when it doesn't divide the
+      // refresh rate (which is exactly what causes uneven pacing).
+      if (now < this.nextDue - 1) {
+        requestAnimationFrame(this.frame);
+        return;
+      }
+      this.nextDue = Math.max(this.nextDue + this.interval, now);
+    }
+    // Clamp long gaps (tab switch, breakpoint) so the sim never spirals; the
+    // first rAF timestamp can precede start(), so never go negative either.
+    const dt = Math.min(Math.max(0, (now - this.last) / 1000), 0.25);
     this.last = now;
     this.acc += dt;
     const t0 = performance.now();

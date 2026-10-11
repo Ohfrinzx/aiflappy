@@ -1,6 +1,7 @@
 // Entry point: wires up engine services and starts on the title screen.
 // URL flags (for testing): ?start=95 begins a run at score 95, ?god disables death,
-// ?play skips the title screen, ?perf shows a frame-time graph, ?nosound mutes.
+// ?play skips the title screen, ?perf shows a frame-time graph, ?nosound mutes,
+// ?fps=N caps the drawing frame rate.
 import { CONFIG } from './config.js';
 import { Loop } from './core/loop.js';
 import { Renderer } from './core/renderer.js';
@@ -50,6 +51,8 @@ function readParams() {
     // down (tests whether ProMotion refresh changes on touch cause hitches).
     keepalive: q.has('keepalive'),
     autoflap,
+    // ?fps=N caps how often frames are drawn (10-120); physics are unaffected.
+    fps: q.has('fps') ? Math.min(120, Math.max(10, parseInt(q.get('fps'), 10) || 60)) : 0,
   };
 }
 
@@ -90,7 +93,7 @@ async function boot() {
   if (params.nosound) audio.muted = true;
   if (params.keepalive) startKeepalive();
   input.onGesture(() => audio.unlock());
-  const perf = params.perf ? new PerfOverlay() : null;
+  const perf = params.perf ? new PerfOverlay(params.fps) : null;
   if (perf) input.subscribe((evt) => evt.type === 'press' && perf.tap());
   input.subscribe((evt) => scenes.input(evt));
   document.addEventListener('visibilitychange', () => {
@@ -106,6 +109,7 @@ async function boot() {
 
   new Loop({
     tickRate: CONFIG.tickRate,
+    maxFps: params.fps,
     update(dt) {
       renderer.update(dt);
       scenes.update(dt);
@@ -118,7 +122,7 @@ async function boot() {
       if (perf) {
         perf.record(dt, work, input.handlerMs);
         input.handlerMs = 0;
-        const mode = `input ${params.input}${params.autoflap ? ' (autoflap)' : ''}  audio ${audio.muted ? 'off' : audio.mode}${params.keepalive ? '  keepalive' : ''}`;
+        const mode = `input ${params.input}${params.autoflap ? ' (autoflap)' : ''}  audio ${audio.muted ? 'off' : audio.mode}${params.keepalive ? '  keepalive' : ''}${params.fps ? `  cap ${params.fps}fps` : ''}`;
         perf.render(renderer, mode);
       }
     },
