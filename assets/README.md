@@ -25,7 +25,7 @@ drop straight in.
 | ★ `background-day`, ★ `background-night` | 288×512 | Backgrounds |
 | ★ `base` | 336×112 | Scrolling ground (must be at least 288 wide; the extra width is how far it scrolls before wrapping) |
 | ★ `pipe-green` | 52×320 | Pipe with the cap at the **top**. The upper pipe is drawn flipped. |
-| ★ `yellowbird-upflap` / `-midflap` / `-downflap` | 34×24 | Bird frames. Same pattern for `bluebird`, `redbird`, and the unlockables: `limebird`, `shadesbird`, `ghostbird`, `penguinbird`, `ninjabird`, `batbird`, `robotbird`, `rainbowbird`, `goldbird`, `royalbird`. Collision always uses the standard bird shape. |
+| ★ `yellowbird-upflap` / `-midflap` / `-downflap` | 34×24 | Bird frames. Same pattern for `bluebird`, `redbird`, and the unlockables: `limebird`, `shadesbird`, `ghostbird`, `penguinbird`, `ninjabird`, `batbird`, `robotbird`, `rainbowbird`, `goldbird`, `royalbird`, `silverbird`, `owlbird`, `icebird`, `piratebird`, `phoenixbird`, `angelbird`. Collision always uses the standard bird shape. |
 | ★ `0` … `9` | 24×36 | Big score digits |
 | ★ `gameover` | 192×42 | "Game Over" title |
 | ★ `message` | 184×267 | *Optional.* If present, replaces the Get Ready text + tutorial with this one combined image |

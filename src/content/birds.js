@@ -1,9 +1,10 @@
 // Bird characters, in picker order. Add an entry to add a character.
 //   file:    drop-in PNG prefix (yellowbird -> yellowbird-upflap/-midflap/-downflap.png)
-//   style:   optional { wings: 'bird'|'bat', accessories: [...], pattern: 'rainbow' }
+//   style:   optional { wings: 'bird'|'bat', accessories: [...], pattern: 'rainbow'|'flame' }
 //            (see src/art/birds.js)
 //   unlock:  omit for always-available; otherwise { stat, at, label } where stat
-//            is one of best | runs | totalPipes | bossReached | bossesDefeated
+//            is one of best | runs | totalPipes | flaps | nightRuns | bossReached |
+//            bossesDefeated | flawlessWins
 //            (tracked in src/systems/progress.js)
 const OUTLINE = '#533846';
 
@@ -58,6 +59,22 @@ export const BIRDS = [
     },
   },
   {
+    id: 'silver', name: 'Silver', file: 'silverbird',
+    unlock: { stat: 'best', at: 40, label: 'SCORE 40 IN A RUN' },
+    palette: {
+      outline: '#4a4e58', highlight: '#f4f6fa', body: '#c8ccd4', belly: '#9aa0aa',
+      white: '#ffffff', wing: '#e8ebf0', wingShade: '#b8bcc6', lipTop: '#f8b733', lipBottom: '#e0941c',
+    },
+  },
+  {
+    id: 'owl', name: 'Owl', file: 'owlbird', style: { accessories: ['tufts'] },
+    unlock: { stat: 'nightRuns', at: 10, label: 'PLAY 10 NIGHT RUNS' },
+    palette: {
+      outline: '#3a2410', highlight: '#d8b080', body: '#a87848', belly: '#e8d0a8',
+      white: '#fff8e0', wing: '#8a5a30', wingShade: '#a87848', lipTop: '#f8c030', lipBottom: '#d89a18',
+    },
+  },
+  {
     id: 'ninja', name: 'Ninja', file: 'ninjabird', style: { accessories: ['headband'] },
     unlock: { stat: 'totalPipes', at: 250, label: 'PASS 250 PIPES' },
     palette: {
@@ -74,11 +91,27 @@ export const BIRDS = [
     },
   },
   {
+    id: 'ice', name: 'Ice', file: 'icebird',
+    unlock: { stat: 'best', at: 75, label: 'SCORE 75 IN A RUN' },
+    palette: {
+      outline: '#2a5a7a', highlight: '#f0fcff', body: '#a8e8f8', belly: '#78c8e8',
+      white: '#ffffff', wing: '#e0f8ff', wingShade: '#a8e8f8', lipTop: '#f8a020', lipBottom: '#e08010',
+    },
+  },
+  {
     id: 'robot', name: 'Robot', file: 'robotbird', style: { accessories: ['visor'] },
     unlock: { stat: 'totalPipes', at: 500, label: 'PASS 500 PIPES' },
     palette: {
       outline: '#3a3e48', highlight: '#dde3ea', body: '#a8b0bc', belly: '#7c8490',
       white: '#e8eef4', wing: '#c8ced8', wingShade: '#9098a4', lipTop: '#f8b733', lipBottom: '#d89418',
+    },
+  },
+  {
+    id: 'pirate', name: 'Pirate', file: 'piratebird', style: { accessories: ['headband', 'eyepatch'] },
+    unlock: { stat: 'flaps', at: 2000, label: 'FLAP 2000 TIMES' },
+    palette: {
+      outline: OUTLINE, highlight: '#f0d0a0', body: '#d8a868', belly: '#b07c40',
+      white: '#fafafa', wingShade: '#d7e6cc', lipTop: '#fc8c18', lipBottom: '#fc8c18',
     },
   },
   {
@@ -100,6 +133,22 @@ export const BIRDS = [
     palette: {
       outline: '#3a1020', highlight: '#f07090', body: '#c02848', belly: '#8a1a34',
       white: '#fafafa', wingShade: '#e8c0cc', lipTop: '#f8d030', lipBottom: '#e0b020',
+    },
+  },
+  {
+    id: 'phoenix', name: 'Phoenix', file: 'phoenixbird', style: { pattern: 'flame' },
+    unlock: { stat: 'bossesDefeated', at: 3, label: 'BEAT KING CROW 3 TIMES' },
+    palette: {
+      outline: '#5a1408', highlight: '#ffd23a', body: '#ff7a1a', belly: '#e0281a',
+      white: '#fff8e0', wing: '#ffe07a', wingShade: '#ffa21a', lipTop: '#fff07a', lipBottom: '#ffd23a',
+    },
+  },
+  {
+    id: 'angel', name: 'Angel', file: 'angelbird', style: { accessories: ['halo'] },
+    unlock: { stat: 'flawlessWins', at: 1, label: 'FLAWLESS KING CROW WIN' },
+    palette: {
+      outline: '#8a8aa8', highlight: '#ffffff', body: '#f4f4fa', belly: '#dcdce8',
+      white: '#ffffff', wing: '#ffffff', wingShade: '#e8e8f4', lipTop: '#ffd23a', lipBottom: '#f0b820',
     },
   },
 ];

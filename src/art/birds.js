@@ -40,19 +40,26 @@ const ACCESSORIES = {
   crown: [['g.gg.g', 'ggrggg'], 5, 0, { g: '#f8d030', r: '#e83a2a' }],
   visor: [['kkkkkk', 'kcccck', 'kkkkkk'], 10, 2, { k: '#3a3e48', c: '#5ef0ff' }],
   ears: [['k...k', 'pk.kp'], 6, 0, { k: '#2a1a3a', p: '#d080a0' }],
+  eyepatch: [['kkkkkk.....', '......kkkkk', '......kkkkk', '.......kkk.'], 4, 1, { k: '#141414' }],
+  tufts: [['k....k', 'tk..kt'], 5, 0, { k: '#3a2410', t: '#a87848' }],
+  halo: [['hhhhhh'], 6, 0, { h: '#ffe24a' }],
 };
 
-const RAINBOW = ['#ff4b4b', '#ff8c1a', '#ffd21a', '#5ad84a', '#3ab0ff', '#7a5cff'];
+const PATTERNS = {
+  rainbow: ['#ff4b4b', '#ff8c1a', '#ffd21a', '#5ad84a', '#3ab0ff', '#7a5cff'],
+  flame: ['#fff07a', '#ffd23a', '#ffa21a', '#ff7a1a', '#ff4b1a', '#e0281a'],
+};
 
 export function birdPix(p, frame, style = {}) {
   const pal = { k: p.outline, Y: p.highlight, y: p.body, o: p.belly, w: p.white, r: p.lipTop, R: p.lipBottom };
   const pix = new Pix(17, 12).map(BODY, pal);
-  if (style.pattern === 'rainbow') {
-    // Horizontal rainbow bands over the body colours (keeps outline / eye / beak).
+  const bands = PATTERNS[style.pattern];
+  if (bands) {
+    // Horizontal colour bands over the body colours (keeps outline / eye / beak).
     const body = new Set([p.body, p.highlight, p.belly]);
     for (let y = 0; y < pix.h; y++) {
       for (let x = 0; x < pix.w; x++) {
-        if (body.has(pix.get(x, y))) pix.set(x, y, RAINBOW[Math.floor((y * RAINBOW.length) / pix.h)]);
+        if (body.has(pix.get(x, y))) pix.set(x, y, bands[Math.floor((y * bands.length) / pix.h)]);
       }
     }
   }

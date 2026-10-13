@@ -18,8 +18,11 @@ export class Progress {
       best: this.storage.get('best', 0),
       runs: s.runs ?? 0,
       totalPipes: s.totalPipes ?? 0,
+      flaps: s.flaps ?? 0,
+      nightRuns: s.nightRuns ?? 0,
       bossReached: s.bossReached ?? 0,
       bossesDefeated: s.bossesDefeated ?? 0,
+      flawlessWins: s.flawlessWins ?? 0,
     };
   }
 
@@ -51,7 +54,7 @@ export class Progress {
   }
 
   // Records a finished run; returns { best, prevBest, newBirds }.
-  recordRun({ score, pipes, reachedBoss, bossesDefeated }) {
+  recordRun({ score, pipes, reachedBoss, bossesDefeated, flaps = 0, night = false, flawless = false }) {
     const prevBest = this.storage.get('best', 0);
     const best = Math.max(prevBest, score);
     if (best > prevBest) this.storage.set('best', best);
@@ -60,6 +63,9 @@ export class Progress {
     s.totalPipes = (s.totalPipes ?? 0) + pipes;
     s.bossReached = (s.bossReached ?? 0) + (reachedBoss ? 1 : 0);
     s.bossesDefeated = (s.bossesDefeated ?? 0) + bossesDefeated;
+    s.flaps = (s.flaps ?? 0) + flaps;
+    s.nightRuns = (s.nightRuns ?? 0) + (night ? 1 : 0);
+    s.flawlessWins = (s.flawlessWins ?? 0) + (flawless && bossesDefeated > 0 ? 1 : 0);
     this.storage.set('stats', s);
     return { best, prevBest, newBirds: this.checkUnlocks() };
   }

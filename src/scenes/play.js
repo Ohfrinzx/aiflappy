@@ -32,6 +32,8 @@ export class PlayScene {
     this.score = startScore;
     this.pipesPassed = 0; // real pipes passed this run (for unlock stats)
     this.reachedBoss = false;
+    this.flaps = 0;
+    this.livesLost = 0;
     this.state = 'ready'; // ready | playing | dying | over
     this.paused = false;
     this.readyAlpha = 1;
@@ -43,6 +45,9 @@ export class PlayScene {
     this.invulnT = 0;
     this.pauseButton = new Button(sp, 'button-pause', 10, 10, () => this.setPaused(true));
     this.resumeButton = new Button(sp, 'button-resume', 10, 10, () => this.setPaused(false));
+    // Same pause button on Get Ready / Game Over: back to the title screen
+    // (where the bird can be changed).
+    this.menuButton = new Button(sp, 'button-pause', 10, 10, () => this.toTitle());
   }
 
   // ---- events ------------------------------------------------------------
@@ -52,11 +57,13 @@ export class PlayScene {
     if (evt.type === 'mute') return g.toggleMute();
     if (evt.type === 'pause') {
       if (this.state === 'playing') this.setPaused(!this.paused);
+      else if (this.menuAvailable) this.toTitle();
       return;
     }
 
     switch (this.state) {
       case 'ready':
+        if (this.menuButton.handle(evt)) return;
         if (evt.type === 'press') this.queuedTap = true;
         break;
       case 'playing':
@@ -69,9 +76,22 @@ export class PlayScene {
         if (evt.type === 'press') this.queuedTap = true;
         break;
       case 'over':
+        if (this.menuButton.handle(evt)) return;
         this.panel?.onInput(evt);
         break;
     }
+  }
+
+  // Get Ready and Game Over are the "not playing" screens with a way back.
+  get menuAvailable() {
+    return this.state === 'ready' || this.state === 'over';
+  }
+
+  toTitle() {
+    if (this.leaving) return;
+    this.leaving = true;
+    this.game.audio.play('swoosh');
+    this.game.toTitle();
   }
 
   onBlur() {
@@ -95,6 +115,7 @@ export class PlayScene {
   loseLife(cause) {
     const g = this.game;
     this.lives--;
+    this.livesLost++;
     this.invulnT = CONFIG.bosses.invulnTime;
     this.bird.blink = this.invulnT;
     if (cause === 'ground') this.bird.bounce();
@@ -147,6 +168,9 @@ export class PlayScene {
       pipes: this.pipesPassed,
       reachedBoss: this.reachedBoss,
       bossesDefeated: this.bosses.defeatedCount,
+      flaps: this.flaps,
+      night: this.theme.id === 'night',
+      flawless: this.livesLost === 0,
     });
     this.state = 'over';
     this.panel = new GameOverPanel(g, {
@@ -173,8 +197,10 @@ export class PlayScene {
     if (tap && this.state === 'ready') {
       this.state = 'playing';
       bird.start();
+      this.flaps++;
       this.game.audio.play('wing');
     } else if (tap && this.state === 'playing' && bird.flap()) {
+      this.flaps++;
       this.game.audio.play('wing');
     }
 
@@ -287,5 +313,6 @@ export class PlayScene {
     }
 
     this.panel?.render(r);
+    if (this.menuAvailable) this.menuButton.render(r);
   }
 }

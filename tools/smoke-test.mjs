@@ -198,6 +198,38 @@ try {
   check(un.fresh.includes('lime') && un.saved.includes('lime'), `scoring 10 unlocks Lime and saves it (${un.fresh.join(',')})`);
   check(p.errors.length === 0, `no page errors (unlocks) ${p.errors.join('; ')}`);
 
+  // 2e. Pause button returns to the title screen from Get Ready and Game Over.
+  p = await page({ width: 402, height: 874 }, { dpr: 1, touch: true });
+  await p.goto(`${base}?play`);
+  await p.waitForTimeout(400);
+  const menuPos = () => p.evaluate(() => {
+    const g = window.__game; const s = g.scenes.current; const r = g.renderer; const b = r.bounds; const m = s.menuButton; const i = m.img;
+    const gx = m.x + i.width / 2; const gy = m.y + i.height / 2;
+    return { x: b.left + (gx / r.w) * b.width, y: b.top + ((gy - r.viewTop) / r.viewH) * b.height };
+  });
+  let mp = await menuPos();
+  await p.touchscreen.tap(mp.x, mp.y);
+  await p.waitForTimeout(900);
+  check((await state(p)).scene === 'TitleScene', 'pause button on Get Ready opens the title screen');
+  // From the title, start a run, crash, then use the button on Game Over.
+  await p.keyboard.press('Space');
+  await p.waitForTimeout(900);
+  await tap(p);
+  check(await waitFor(p, () => window.__game.scenes.current.panel?.ready, 15), 'crash reaches Game Over');
+  const counted = await p.evaluate(() => { const s = window.__game.scenes.current; return { flaps: s.flaps, stats: JSON.parse(localStorage.getItem('aiflappy.stats')) }; });
+  check(counted.flaps >= 1 && counted.stats.flaps >= 1 && 'nightRuns' in counted.stats, `run stats recorded (flaps ${counted.stats.flaps}, night runs ${counted.stats.nightRuns})`);
+  mp = await menuPos();
+  await p.touchscreen.tap(mp.x, mp.y);
+  await p.waitForTimeout(900);
+  check((await state(p)).scene === 'TitleScene', 'pause button on Game Over opens the title screen');
+  // Keyboard: Esc on Get Ready goes to the title too.
+  await p.keyboard.press('Space');
+  await p.waitForTimeout(900);
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(900);
+  check((await state(p)).scene === 'TitleScene', 'Esc on Get Ready opens the title screen');
+  check(p.errors.length === 0, `no page errors (menu) ${p.errors.join('; ')}`);
+
   // 3. Phone: full-bleed view, touch input, pause.
   p = await page({ width: 402, height: 874 }, { dpr: 3, touch: true });
   await p.goto(`${base}?play`);

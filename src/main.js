@@ -89,6 +89,9 @@ async function boot() {
       const startScore = game.runCount++ === 0 ? params.start : 0;
       scenes.transition(() => new PlayScene(game, { startScore }));
     },
+    toTitle() {
+      scenes.transition(() => new TitleScene(game));
+    },
     toggleMute() {
       audio.setMuted(!audio.muted);
       storage.set('muted', audio.muted);

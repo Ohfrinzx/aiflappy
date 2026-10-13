@@ -76,7 +76,8 @@ Mobile tip: use "Add to Home Screen" to get fullscreen without the browser bars.
 ## Characters
 
 On the title screen, use the arrows (or Left/Right, A/D) to pick a bird. The
-choice is saved. **Random** picks from the birds you've unlocked each run, like
+choice is saved. To get back to the title screen from **Get Ready** or **Game
+Over**, tap the pause button (top-left) or press Esc / P. **Random** picks from the birds you've unlocked each run, like
 the original. Locked birds show as silhouettes with their goal and your
 progress. When a run unlocks a bird, the game over screen announces it. Every
 bird has the same hitbox, so none of them changes the difficulty.
@@ -88,12 +89,18 @@ bird has the same hitbox, so none of them changes the difficulty.
 | Cool (sunglasses) | Score 20 in a run |
 | Ghost | Play 25 runs |
 | Penguin | Score 30 in a run |
+| Silver | Score 40 in a run |
+| Owl | Play 10 runs at night |
 | Ninja | Pass 250 pipes in total |
 | Bat | Score 50 in a run |
+| Ice | Score 75 in a run |
 | Robot | Pass 500 pipes in total |
+| Pirate (eyepatch + bandana) | Flap 2000 times in total |
 | Rainbow | Pass 1000 pipes in total |
 | Gold | Reach King Crow |
 | Royal (crown) | Beat King Crow |
+| Phoenix | Beat King Crow 3 times |
+| Angel (halo) | Beat King Crow without losing a life |
 
 Progress is saved in the browser. Use `?unlockall` to try every bird without
 unlocking them (nothing is saved).
