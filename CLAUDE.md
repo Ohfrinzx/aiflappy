@@ -27,6 +27,7 @@ GitHub Pages from `main`. See README.md for the architecture.
 - Testing shortcuts: `?start=N` (begin at score N), `?god`, `?play`,
   `?perf` (frame-time graph), `?nosound`, `?autoflap` (no-touch flapping),
   `?input=pointer|none`, `?keepalive`, `?fps=N` (stutter diagnostics).
+- `?hitboxes` (or `hitboxes.html`) draws the real collision shapes.
 - Known iOS issue: Safari's default "Prefer Page Rendering Updates near
   60fps" flag causes a hitch on every touch on ProMotion iPhones (touch boost
   re-phases the 60 fps cadence). Verified not fixable from page code

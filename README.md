@@ -39,6 +39,9 @@ Testing shortcuts (URL flags):
   bars are slow frames, and yellow ticks mark your taps. The second line shows
   the slowest touch handler and game update+draw time over your last 10 taps,
   and whether sound runs through the `worklet` mixer or the `nodes` fallback.
+- `?hitboxes` draws the collision shapes: pixel masks for the bird (cyan) and
+  pipes/boss/feathers (red), pickups (green), and the ground line (yellow).
+  On the live site, `hitboxes.html` is the same thing without the flag.
 - `?nosound` mutes the game without saving the setting.
 - `?autoflap` makes the bird flap by itself with no touches (implies `?god`).
   `?input=pointer` reads touches through pointer events instead of touch
