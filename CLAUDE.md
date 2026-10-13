@@ -39,3 +39,7 @@ GitHub Pages from `main`. See README.md for the architecture.
   hot path.
 - `window.__game` exposes the running game for console / test automation.
 - All tunables live in `src/config.js`; content lives in `src/content/`.
+- Characters: `src/content/birds.js` (unlock goals), progress / unlocks /
+  chosen bird in `src/systems/progress.js`. Bird collision always uses the
+  plain `bird-hitbox-*` frames so skins never change difficulty.
+- `?unlockall` makes all birds available (not saved).

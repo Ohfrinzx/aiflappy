@@ -36,8 +36,13 @@ export class Bird {
     return this.sprites.get(this.frameName);
   }
 
+  // Collision always uses the plain bird shape, so every skin plays the same.
   get mask() {
-    return this.sprites.mask(this.frameName);
+    return this.sprites.mask(`bird-hitbox-${WING_SEQ[this.animIdx]}`);
+  }
+
+  setSkin(skin) {
+    this.frames = FLAP_NAMES.map((n) => `${skin.file}-${n}`);
   }
 
   get w() {

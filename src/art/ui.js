@@ -168,3 +168,26 @@ export function makeLifeIcons() {
     'lifepip-empty': icon(PIP, '#6b5a60'),
   };
 }
+
+const LOCK = ['.###.', '#...#', '#...#', '#####', '##.##', '##.##', '#####'];
+const ARROW_L = ['..#', '.##', '###', '.##', '..#'];
+
+// Character picker: arrow buttons, padlock, RANDOM label and "?" badge.
+export function makePickerSprites() {
+  const arrow = (flip) => button(13, 14, (p) => {
+    const rows = flip ? ARROW_L.map((r) => [...r].reverse().join('')) : ARROW_L;
+    p.map(rows, { '#': PAL.orangeDark }, 5, 4);
+  });
+  const lock = new Pix(7, 9).map(LOCK, { '#': '#f8d030' }, 1, 1);
+  lock.set(3, 5, '#6a4808');
+  lock.outline(PAL.outline);
+  return {
+    'button-left': arrow(false),
+    'button-right': arrow(true),
+    lock: lock.toCanvas(),
+    'name-random': renderText('RANDOM', { font: 'small', fill: '#ffffff', outer: PAL.outline }),
+    'random-mark': renderText('?', { cell: 2, bold: 1, fill: '#ffffff', outer: PAL.outline }),
+    'text-newbird': renderText('NEW BIRD!', { font: 'small', fill: '#ffe066', outer: PAL.outline }),
+    'text-newbirds': renderText('NEW BIRDS!', { font: 'small', fill: '#ffe066', outer: PAL.outline }),
+  };
+}

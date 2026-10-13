@@ -34,6 +34,7 @@ Testing shortcuts (URL flags):
 - `?start=95` starts a run at score 95, so the boss arrives after 5 pipes.
 - `?god` makes you invincible (you bounce off the ground).
 - `?play` skips the title screen.
+- `?unlockall` makes every bird available for this visit (nothing is saved).
 - `?perf` shows a frame-time graph at the bottom. Green bars are on time, red
   bars are slow frames, and yellow ticks mark your taps. The second line shows
   the slowest touch handler and game update+draw time over your last 10 taps,
@@ -68,6 +69,31 @@ Mobile tip: use "Add to Home Screen" to get fullscreen without the browser bars.
 - Medals: bronze 10, silver 20, gold 30, platinum 40
 - Best score saved in the browser (localStorage)
 - Pixel-perfect collision against the sprite shapes
+
+## Characters
+
+On the title screen, use the arrows (or Left/Right, A/D) to pick a bird. The
+choice is saved. **Random** picks from the birds you've unlocked each run, like
+the original. Locked birds show as silhouettes with their goal and your
+progress. When a run unlocks a bird, the game over screen announces it. Every
+bird has the same hitbox, so none of them changes the difficulty.
+
+| Bird | How to unlock |
+| --- | --- |
+| Classic, Blue, Red | Available from the start |
+| Lime | Score 10 in a run |
+| Cool (sunglasses) | Score 20 in a run |
+| Ghost | Play 25 runs |
+| Penguin | Score 30 in a run |
+| Ninja | Pass 250 pipes in total |
+| Bat | Score 50 in a run |
+| Robot | Pass 500 pipes in total |
+| Rainbow | Pass 1000 pipes in total |
+| Gold | Reach King Crow |
+| Royal (crown) | Beat King Crow |
+
+Progress is saved in the browser. Use `?unlockall` to try every bird without
+unlocking them (nothing is saved).
 
 ## The boss: King Crow
 
@@ -126,7 +152,9 @@ src/
 
 ### Adding content
 
-- **New bird skin:** add an entry to `src/content/birds.js` (palette + file prefix).
+- **New bird:** add an entry to `src/content/birds.js`: a palette, a file
+  prefix, and an optional style (wings, accessories, pattern) and unlock goal.
+  New accessories and wing shapes go in `src/art/birds.js`.
 - **New background:** add an entry to `src/content/themes.js`.
 - **New medal:** add to `src/content/medals.js`. It's a test function on the run
   stats, checked top to bottom.

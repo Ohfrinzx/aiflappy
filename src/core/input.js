@@ -1,6 +1,6 @@
 // Unified input: touch, mouse/pen and keyboard become simple press / release
 // events in game coordinates. Space, Up, W and Enter count as a "tap" anywhere;
-// P / Escape pause; M mutes.
+// P / Escape pause; M mutes; Left/Right (A/D) navigate menus.
 //
 // Touch uses *passive* touchstart/touchend listeners. A non-passive touch
 // listener (needed to call preventDefault) makes iOS Safari dispatch every
@@ -64,6 +64,10 @@ export class Input {
         if (!e.repeat) this.dispatch({ type: 'pause', source: 'key' });
       } else if (e.code === 'KeyM') {
         if (!e.repeat) this.dispatch({ type: 'mute', source: 'key' });
+      } else if (e.code === 'ArrowLeft' || e.code === 'KeyA' || e.code === 'ArrowRight' || e.code === 'KeyD') {
+        e.preventDefault();
+        const dir = e.code === 'ArrowLeft' || e.code === 'KeyA' ? -1 : 1;
+        this.dispatch({ type: 'nav', source: 'key', dir });
       }
     });
     target.addEventListener('keyup', (e) => {

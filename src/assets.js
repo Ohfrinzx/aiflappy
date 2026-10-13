@@ -2,6 +2,7 @@
 // PNG files (CONFIG.assets.useFiles). Also caches collision masks.
 import { buildProceduralSprites } from './art/sprites.js';
 import { maskFromImage, flipMaskY } from './core/collision.js';
+import { renderText } from './art/font.js';
 
 // Files that have no procedural equivalent but are used if present.
 const OPTIONAL_FILES = ['message'];
@@ -69,6 +70,13 @@ export class Sprites {
     const img = this.images.get(name);
     if (!img) throw new Error(`Missing sprite: ${name}`);
     return img;
+  }
+
+  // Runtime text (e.g. progress counters), rendered once per string and cached.
+  text(str, opts = { font: 'small', fill: '#ffffff', outer: '#543847' }) {
+    const key = `text:${str}`;
+    if (!this.has(key)) this.set(key, renderText(str, opts));
+    return this.get(key);
   }
 
   mask(name, flipY = false) {

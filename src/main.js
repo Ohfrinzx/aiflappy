@@ -1,7 +1,7 @@
 // Entry point: wires up engine services and starts on the title screen.
 // URL flags (for testing): ?start=95 begins a run at score 95, ?god disables death,
 // ?play skips the title screen, ?perf shows a frame-time graph, ?nosound mutes,
-// ?fps=N caps the drawing frame rate.
+// ?fps=N caps the drawing frame rate, ?unlockall makes every bird available.
 import { CONFIG } from './config.js';
 import { Loop } from './core/loop.js';
 import { Renderer } from './core/renderer.js';
@@ -12,6 +12,7 @@ import { Audio } from './audio/audio.js';
 import { loadSprites } from './assets.js';
 import { TitleScene } from './scenes/title.js';
 import { PlayScene } from './scenes/play.js';
+import { Progress } from './systems/progress.js';
 import { VERSION } from './version.js';
 import { PerfOverlay } from './ui/perfOverlay.js';
 
@@ -43,6 +44,7 @@ function readParams() {
     god: q.has('god') || autoflap,
     play: q.has('play') || autoflap,
     perf: q.has('perf'), // frame-time graph for diagnosing stutter
+    unlockall: q.has('unlockall'), // every bird available (not saved)
     nosound: q.has('nosound'), // mute without saving the setting
     // Stutter diagnostics: ?input=pointer uses pointer events instead of touch
     // events; ?autoflap flaps automatically (no touches, implies ?god).
@@ -78,6 +80,7 @@ async function boot() {
     storage,
     scenes,
     params,
+    progress: new Progress(storage, { unlockAll: params.unlockall }),
     version: VERSION,
     runCount: 0,
     newRun() {

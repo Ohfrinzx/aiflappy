@@ -1,6 +1,6 @@
 {
   "name": "aiflappy",
-  "version": "1.5.5",
+  "version": "1.6.0",
   "private": true,
   "description": "Flappy Bird remake with a boss fight. Plain JS + canvas, no build step.",
   "type": "module",

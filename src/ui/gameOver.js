@@ -10,7 +10,8 @@ const T_PANEL = 0.55;
 const T_COUNT = 1.05;
 
 export class GameOverPanel {
-  constructor(game, { score, best, isNew, medal, victory, onPlay }) {
+  constructor(game, { score, best, isNew, medal, victory, onPlay, newBirds = [] }) {
+    this.newBirds = newBirds; // birds unlocked by this run (announced above the title)
     this.game = game;
     this.sp = game.sprites;
     this.score = score;
@@ -44,6 +45,7 @@ export class GameOverPanel {
     const a = this.game.audio;
     this.once('title', T_TITLE, () => a.play('swoosh'));
     this.once('panel', T_PANEL, () => a.play('swoosh'));
+    if (this.newBirds.length) this.once('newbird', this.tDone, () => a.play('orb'));
     if (this.medal && this.t > this.tDone) {
       const s = this.sparkle;
       s.t += dt;
@@ -107,6 +109,39 @@ export class GameOverPanel {
       }
     }
 
+    if (this.newBirds.length && this.t >= this.tDone) this.renderNewBird(r);
     if (this.ready) this.play.render(r);
+  }
+
+  // "NEW BIRD!" banner with the unlocked bird(s), above the Game Over title.
+  renderNewBird(r) {
+    const sp = this.sp;
+    const W = CONFIG.width;
+    const pop = clamp((this.t - this.tDone) / 0.25, 0, 1);
+    const y = CONFIG.layout.gameOverY - 58 + Math.round((1 - pop) * 8);
+    r.drawCentered(sp.get(this.newBirds.length > 1 ? 'text-newbirds' : 'text-newbird'), W / 2, y, pop);
+    const shown = this.newBirds.slice(0, 4);
+    const gap = 40;
+    if (shown.length === 1) {
+      // Single unlock: bird plus its name side by side.
+      const b = shown[0];
+      const name = sp.get(`name-${b.id}`);
+      const img = sp.get(`${b.file}-midflap`);
+      const total = img.width + 6 + name.width;
+      const x0 = W / 2 - total / 2;
+      r.drawRotated(img, x0 + img.width / 2, y + 32 + Math.sin(this.t * 6) * 2, 0, pop);
+      r.draw(name, Math.round(x0 + img.width + 6), y + 27, pop);
+      return;
+    }
+    let x = W / 2 - ((shown.length - 1) * gap) / 2;
+    for (const b of shown) {
+      const img = sp.get(`${b.file}-midflap`);
+      const bob = Math.sin(this.t * 6 + x) * 2;
+      r.drawRotated(img, x, y + 32 + bob, 0, pop);
+      x += gap;
+    }
+    if (this.newBirds.length > shown.length) {
+      r.draw(sp.text(`+${this.newBirds.length - shown.length}`), Math.round(x - gap / 2 + 4), y + 27, pop);
+    }
   }
 }

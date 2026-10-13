@@ -1,9 +1,10 @@
 // Builds every procedural sprite. Keys double as drop-in file names
 // (assets/sprites/<key>.png) — they follow FlapPyBird's naming where one exists.
 import { makeBackground, makeGround, makePipe } from './world.js';
-import { makeBirdFrames } from './birds.js';
+import { makeBirdFrames, makeBirdShadow, makeHitboxFrames } from './birds.js';
 import {
   makeTitleTexts, makeDigits, makePanel, makeMedal, makeButtons, makeBadgeNew, makeSparkles, makeTutorial, makeLifeIcons,
+  makePickerSprites,
 } from './ui.js';
 import { makeKingCrow, makeFeather, makeOrb, makeHpFrame } from './boss.js';
 import { THEMES } from '../content/themes.js';
@@ -21,8 +22,12 @@ export function buildProceduralSprites() {
   s.base = makeGround();
   s['pipe-green'] = makePipe();
   for (const b of BIRDS) {
-    makeBirdFrames(b.palette).forEach((c, i) => (s[`${b.file}-${FLAP_NAMES[i]}`] = c));
+    makeBirdFrames(b.palette, b.style).forEach((c, i) => (s[`${b.file}-${FLAP_NAMES[i]}`] = c));
+    s[`${b.file}-shadow`] = makeBirdShadow(b.palette, b.style);
+    s[`name-${b.id}`] = renderText(b.name.toUpperCase(), { font: 'small', fill: '#ffffff', outer: '#543847' });
   }
+  makeHitboxFrames().forEach((c, i) => (s[`bird-hitbox-${i}`] = c));
+  Object.assign(s, makePickerSprites());
   Object.assign(s, makeTitleTexts(), makeDigits(), makeButtons());
   s.scoreboard = makePanel();
   for (const m of MEDALS) s[`medal-${m.id}`] = makeMedal(m);

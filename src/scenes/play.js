@@ -3,7 +3,6 @@ import { CONFIG } from '../config.js';
 import { weightedPick } from '../core/math.js';
 import { Events } from '../core/events.js';
 import { THEMES } from '../content/themes.js';
-import { BIRDS } from '../content/birds.js';
 import { medalFor } from '../content/medals.js';
 import { Bird } from '../entities/bird.js';
 import { PipeField } from '../entities/pipes.js';
@@ -21,7 +20,7 @@ export class PlayScene {
     const sp = game.sprites;
     this.events = new Events();
     this.theme = weightedPick(THEMES);
-    this.skin = weightedPick(BIRDS);
+    this.skin = game.progress.skinForRun();
     this.bird = new Bird(sp, this.skin);
     this.pipes = new PipeField(sp, this.events);
     this.pipes.spawned = startScore; // debug: ?start=N skips ahead
@@ -30,6 +29,8 @@ export class PlayScene {
     this.hazards = new Hazards();
     this.bosses = new BossDirector(this);
     this.score = startScore;
+    this.pipesPassed = 0; // real pipes passed this run (for unlock stats)
+    this.reachedBoss = false;
     this.state = 'ready'; // ready | playing | dying | over
     this.paused = false;
     this.readyAlpha = 1;
@@ -140,17 +141,17 @@ export class PlayScene {
 
   finish() {
     const g = this.game;
-    const prevBest = g.storage.get('best', 0);
-    const best = Math.max(prevBest, this.score);
-    if (best > prevBest) g.storage.set('best', best);
-    const stats = g.storage.get('stats', { runs: 0, bossesDefeated: 0 });
-    stats.runs++;
-    stats.bossesDefeated += this.bosses.defeatedCount;
-    g.storage.set('stats', stats);
+    const { best, prevBest, newBirds } = g.progress.recordRun({
+      score: this.score,
+      pipes: this.pipesPassed,
+      reachedBoss: this.reachedBoss,
+      bossesDefeated: this.bosses.defeatedCount,
+    });
     this.state = 'over';
     this.panel = new GameOverPanel(g, {
       score: this.score,
       best,
+      newBirds,
       isNew: this.score > prevBest,
       medal: medalFor({ score: this.score, best, bossesDefeated: this.bosses.defeatedCount }),
       victory: this.victory,
@@ -191,9 +192,15 @@ export class PlayScene {
         if (this.state !== 'playing') break; // boss defeat may end the run
         this.hazards.update(dt, this);
         const passed = this.pipes.collectPassed(bird);
-        if (passed) this.addScore(passed);
+        if (passed) {
+          this.pipesPassed += passed;
+          this.addScore(passed);
+        }
 
-        if (this.bosses.state === 'fight' && this.lives === null) this.lives = CONFIG.bosses.playerLives;
+        if (this.bosses.state === 'fight' && this.lives === null) {
+          this.lives = CONFIG.bosses.playerLives;
+          this.reachedBoss = true;
+        }
         if (this.invulnT > 0) {
           this.invulnT -= dt;
           bird.blink = Math.max(0, this.invulnT);

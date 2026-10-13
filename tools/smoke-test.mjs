@@ -156,6 +156,48 @@ try {
   const audioMode = await p.evaluate(async () => { await new Promise((r) => setTimeout(r, 1200)); return window.__game.audio.mode; });
   check(audioMode === 'worklet', `audio plays through the always-on mixer (${audioMode})`);
 
+  // 2d. Character picker + unlocks.
+  p = await page({ width: 288, height: 512 });
+  await p.goto(base);
+  await p.waitForTimeout(300);
+  const pick0 = await p.evaluate(() => window.__game.scenes.current.option);
+  await p.keyboard.press('ArrowRight');
+  const pick1 = await p.evaluate(() => { const s = window.__game.scenes.current; return { option: s.option, playable: s.playable }; });
+  check(pick0 === 'random' && pick1.option === 'yellow' && pick1.playable, `picker starts on Random and cycles (${pick0} -> ${pick1.option})`);
+  // Jump to a locked bird: Play must be disabled.
+  await p.evaluate(() => { const s = window.__game.scenes.current; while (s.option !== 'ninja') s.step(1); });
+  await p.keyboard.press('Space');
+  await p.waitForTimeout(500);
+  check((await state(p)).scene === 'TitleScene', 'locked bird cannot be played');
+  // Pick an unlocked one: it is saved and used for the run.
+  await p.evaluate(() => { const s = window.__game.scenes.current; while (s.option !== 'red') s.step(1); });
+  await p.keyboard.press('Space');
+  await p.waitForTimeout(900);
+  const used = await p.evaluate(() => ({ skin: window.__game.scenes.current.skin?.id, saved: localStorage.getItem('aiflappy.bird') }));
+  check(used.skin === 'red' && used.saved === '"red"', `chosen bird is used and remembered (${used.skin})`);
+  check(p.errors.length === 0, `no page errors (picker) ${p.errors.join('; ')}`);
+
+  // Unlock: start at 9, pass one pipe (score 10), then crash -> Lime unlocks.
+  p = await page({ width: 288, height: 512 });
+  await p.goto(`${base}?start=9`);
+  await p.waitForTimeout(300);
+  await tap(p);
+  await p.evaluate(() => {
+    window.__ap = setInterval(() => {
+      const s = window.__game.scenes.current;
+      if (!s.bird || s.state !== 'playing') return;
+      if (s.pipesPassed >= 1) return clearInterval(window.__ap);
+      let t = 230;
+      const q = s.pipes.list.find((x) => x.x + 52 > s.bird.x);
+      if (q && q.x < 200) t = q.gapY + q.gap - 34;
+      if (s.bird.y > t && s.bird.vy > -50) window.__game.input.dispatch({ type: 'press', source: 'key', x: -1, y: -1 });
+    }, 30);
+  });
+  check(await waitFor(p, () => window.__game.scenes.current.panel?.ready, 20), 'run ends after scoring 10');
+  const un = await p.evaluate(() => ({ fresh: window.__game.scenes.current.panel.newBirds.map((b) => b.id), saved: JSON.parse(localStorage.getItem('aiflappy.unlocked') || '[]') }));
+  check(un.fresh.includes('lime') && un.saved.includes('lime'), `scoring 10 unlocks Lime and saves it (${un.fresh.join(',')})`);
+  check(p.errors.length === 0, `no page errors (unlocks) ${p.errors.join('; ')}`);
+
   // 3. Phone: full-bleed view, touch input, pause.
   p = await page({ width: 402, height: 874 }, { dpr: 3, touch: true });
   await p.goto(`${base}?play`);
