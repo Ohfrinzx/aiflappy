@@ -14,6 +14,7 @@ import { BossDirector } from '../systems/bossDirector.js';
 import { Button } from '../ui/button.js';
 import { drawNumber } from '../ui/numbers.js';
 import { GameOverPanel } from '../ui/gameOver.js';
+import { renderHitboxes } from '../ui/hitboxOverlay.js';
 
 export class PlayScene {
   constructor(game, { startScore = 0 } = {}) {
@@ -240,6 +241,7 @@ export class PlayScene {
     this.ground.render(r, a);
     this.bird.render(r, a);
     this.particles.render(r);
+    if (this.game.params.hitboxes) renderHitboxes(r, this);
 
     // The combined drop-in 'message' image covers the score area, so hide it then.
     const hideScore = this.state === 'over' || (this.state === 'ready' && sp.has('message'));

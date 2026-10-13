@@ -1,6 +1,6 @@
 // Entry point: wires up engine services and starts on the title screen.
 // URL flags (for testing): ?start=95 begins a run at score 95, ?god disables death,
-// ?play skips the title screen, ?perf shows a frame-time graph, ?nosound mutes,
+// ?play skips the title screen, ?perf shows a frame-time graph, ?hitboxes draws collision shapes, ?nosound mutes,
 // ?fps=N caps the drawing frame rate.
 import { CONFIG } from './config.js';
 import { Loop } from './core/loop.js';
@@ -42,6 +42,7 @@ function readParams() {
     start: Math.max(0, parseInt(q.get('start') ?? '0', 10) || 0),
     god: q.has('god') || autoflap,
     play: q.has('play') || autoflap,
+    hitboxes: q.has('hitboxes') || window.__HITBOXES === true, // draw collision shapes
     perf: q.has('perf'), // frame-time graph for diagnosing stutter
     nosound: q.has('nosound'), // mute without saving the setting
     // Stutter diagnostics: ?input=pointer uses pointer events instead of touch
