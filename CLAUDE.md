@@ -44,3 +44,6 @@ GitHub Pages from `main`. See README.md for the architecture.
   chosen bird in `src/systems/progress.js`. Bird collision always uses the
   plain `bird-hitbox-*` frames so skins never change difficulty.
 - `?unlockall` makes all birds available (not saved).
+- Boss attacks must be dodgeable by vertical movement only (the bird's x is
+  fixed): no straight-down projectiles through the bird's column; patterns
+  must leave a bird-sized gap. The smoke test checks the fan and storm.

@@ -105,6 +105,38 @@ try {
     await waitFor(p, () => { const b = window.__game.scenes.current.bosses.boss; return !b.reviving && b.hp === b.maxHp; }, 10),
     'boss revives with a full health bar',
   );
+  // Dodgeability (the bird only moves vertically): every fan wave must leave a
+  // bird-sized hole, and every storm feather must cross the bird's column
+  // outside the safe gap. Checked in phase 3, the densest.
+  const dodge = await p.evaluate(async () => {
+    const s = window.__game.scenes.current; const boss = s.bosses.boss; const bird = s.bird;
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const realHit = boss.hit; boss.hit = () => {};
+    const out = { fanMinHole: Infinity, storm: 0, stormBad: 0 };
+    boss.hp = 2; s.hazards.clear(); boss.waitT = 0; boss.waitFn = null; boss.script = boss.fan();
+    const shots = []; const orig = boss.shootFrom.bind(boss);
+    boss.shootFrom = (x, y, deg, sp) => { shots.push({ t: boss.t, x, y, deg }); orig(x, y, deg, sp); };
+    for (let i = 0; i < 600 && boss.script; i++) await sleep(10);
+    boss.shootFrom = orig;
+    const nearX = bird.x + bird.w; const waves = new Map();
+    for (const q of shots) { const k = q.t.toFixed(4); if (!waves.has(k)) waves.set(k, []); waves.get(k).push(q.y + (q.x - nearX) * Math.tan((q.deg * Math.PI) / 180)); }
+    for (const ys of waves.values()) { ys.sort((a, c) => a - c); let best = 0; for (let i = 1; i < ys.length; i++) best = Math.max(best, ys[i] - ys[i - 1] - 8); out.fanMinHole = Math.min(out.fanMinHole, best); }
+    boss.hp = 2; s.hazards.clear(); boss.waitT = 0; boss.waitFn = null; boss.script = boss.rain();
+    const crossed = new Set();
+    for (let i = 0; i < 2000 && boss.script; i++) {
+      if (boss.safeCenter) for (const f of s.hazards.list) {
+        if (f.constructor.name !== 'Feather' || crossed.has(f) || f.x > bird.cx) continue;
+        crossed.add(f); out.storm++;
+        if (Math.abs(f.y - boss.safeCenter(boss.t)) < boss.safeBand / 2 + 4) out.stormBad++;
+      }
+      await sleep(4);
+    }
+    s.hazards.clear(); boss.hit = realHit; boss.hp = boss.maxHp; boss.waitT = 0; boss.waitFn = null; boss.script = boss.behavior();
+    return out;
+  });
+  check(dodge.fanMinHole >= 30, `every fan wave leaves a bird-sized hole (min ${dodge.fanMinHole.toFixed(0)}px, bird is 24)`);
+  check(dodge.storm > 0 && dodge.stormBad === 0, `feather storm always leaves a safe gap (${dodge.storm} feathers, ${dodge.stormBad} inside the gap)`);
+
   // Last life: emptying the bar defeats it.
   await p.evaluate(() => { const b = window.__game.scenes.current.bosses.boss; b.lives = 1; b.hp = 1; b.hit(1); });
   check(await waitFor(p, () => window.__game.scenes.current.victory, 15), 'last life emptied -> victory');

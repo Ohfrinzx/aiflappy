@@ -1,13 +1,13 @@
 // King Crow — the score-100 boss. Three phases (see CONFIG.bosses.kingCrow):
 //   1: aimed feather volleys, feather fans, pipe walls, charges
 //   2: everything faster/denser, aimed shots lead your movement, swaying pipe
-//      walls, and feather rain from above
+//      walls, and an angled feather storm with a drifting safe gap
 //   3 (enraged, red): back-to-back charges, it snipes during pipe walls,
 //      and a feather ring bursts out at each phase change
 // It has several lives (health bars); each one restarts at phase 1.
 // Damage: it drops golden orbs; fly into one and it fires back at the boss.
 import { CONFIG } from '../../config.js';
-import { clamp, rand, weightedPick, DEG } from '../../core/math.js';
+import { clamp, rand, randInt, weightedPick, DEG } from '../../core/math.js';
 import { Boss } from '../../entities/boss.js';
 import { Feather, Orb, Bolt } from '../../entities/projectiles.js';
 
@@ -139,18 +139,33 @@ export class KingCrow extends Boss {
     yield 0.3;
   }
 
+  // Fan waves always leave one hole the bird fits through (FAN_HOLE px at the
+  // near edge of the bird's column); each wave's hole is close to the last one
+  // so it can be reached in time.
   *fan() {
     this.ty = rand(110, 230);
     yield 0.55;
     const waves = this.p(T.fanWaves);
+    let hole = -1;
     for (let wave = 0; wave < waves; wave++) {
       const n = this.p(T.fanCount);
       const spread = this.p(T.fanSpread);
       const step = spread / (n - 1);
       const off = wave % 2 ? step / 2 : 0; // alternate waves fill the previous gaps
+      const angles = [];
+      for (let k = 0; k < n; k++) angles.push(-spread / 2 + k * step + off);
+      // How many feathers to skip so the gap clears the bird at its closest
+      // point. Rays spread least around 0 deg, so size the hole for that case.
+      const near = Math.max(20, this.beak.x - (this.bird.x + this.bird.w));
+      let skip = 1;
+      while (skip < n - 2 && 2 * near * Math.tan(((skip + 1) * step * DEG) / 2) < T.fanHole) skip++;
+      const maxStart = n - skip; // first skipped index range: 1..maxStart-1
+      hole = hole < 0 ? randInt(1, maxStart) : clamp(hole + randInt(-1, 2), 1, maxStart - 1);
       this.mouthOpen = true;
       yield 0.12;
-      for (let k = 0; k < n; k++) this.shoot(-spread / 2 + k * step + off, this.p(T.fanSpeed));
+      angles.forEach((a, k) => {
+        if (k < hole || k >= hole + skip) this.shoot(a, this.p(T.fanSpeed));
+      });
       this.sfx('shoot');
       yield 0.12;
       this.mouthOpen = false;
@@ -232,7 +247,10 @@ export class KingCrow extends Boss {
     yield 0.9;
   }
 
-  // Feathers fall from the sky across the bird's column.
+  // Feather storm: feathers stream in at an angle from the top-right. The bird
+  // only moves up and down, so every feather is aimed to cross the bird's
+  // column outside a safe gap that drifts slowly up and down; staying in the
+  // gap dodges everything. (Straight-down rain was impossible to dodge.)
   *rain() {
     this.ty = 30;
     this.mouthOpen = true;
@@ -240,20 +258,40 @@ export class KingCrow extends Boss {
     yield 0.6;
     const n = this.p(T.rainCount);
     const v = this.p(T.rainSpeed);
-    const sniping = this.p(T.rainSniping);
+    const a = this.p(T.rainAngle) * DEG;
+    const band = this.p(T.rainSafeBand);
+    const colX = this.bird.cx;
+    // Exclusion half-height: safe band + feather radius + vertical sweep while
+    // crossing the bird's half-width at this angle.
+    const excl = band / 2 + 4 + (this.bird.w / 2) * Math.tan(a);
+    const lo = 30 + band / 2;
+    const hi = CONFIG.groundY - 40 - band / 2;
+    const mid = clamp(this.bird.cy, lo + 40, hi - 40);
+    const t0 = this.t;
+    const w = rand(0.8, 1.2) * (Math.random() < 0.5 ? -1 : 1);
+    this.safeCenter = (t) => clamp(mid + 70 * Math.sin((t - t0) * w), lo, hi);
+    this.safeBand = band;
     for (let i = 0; i < n; i++) {
-      const x = rand(28, 120);
-      this.scene.hazards.add(new Feather(this.sprites, x, -30, rand(-20, 20), v * rand(0.85, 1.15)));
-      if (sniping && i % 4 === 3) {
-        const sv = this.p(T.volleySpeed) * 0.8;
-        this.shoot(this.aimAngle(sv, 0.5), sv);
-        this.sfx('shoot');
+      let yc = 0;
+      let s = 0;
+      for (let tries = 0; tries < 40; tries++) {
+        yc = rand(-10, CONFIG.groundY - 4);
+        // Trace back from the crossing point to the screen edge.
+        s = Math.min((CONFIG.width + 12 - colX) / Math.cos(a), (yc + 30) / Math.sin(a));
+        if (Math.abs(yc - this.safeCenter(this.t + s / v)) > excl) break;
+        yc = null;
+      }
+      if (yc !== null) {
+        const x = colX + s * Math.cos(a);
+        const y = yc - s * Math.sin(a);
+        this.scene.hazards.add(new Feather(this.sprites, x, y, -Math.cos(a) * v, Math.sin(a) * v));
       }
       yield Math.max(0.1, 0.24 - this.phase * 0.04);
     }
     this.mouthOpen = false;
     this.ty = 150;
     yield 0.9;
+    this.safeCenter = null;
   }
 
   *offerOrb() {

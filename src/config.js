@@ -88,6 +88,7 @@ export const CONFIG = {
       fanWaves: [3, 4, 5], // was [2, 3]
       fanSpeed: [160, 180, 200], // was [150, 170]
       fanSpread: [50, 60, 72], // total angle in degrees, was [44, 56]
+      fanHole: 48, // every fan wave leaves a gap at least this tall (px) for the bird
       wallPipes: [4, 5, 6], // was [3, 4]
       wallSpeed: [165, 185, 205], // was [155, 175]
       wallGap: [106, 100, 96], // was 112
@@ -97,9 +98,10 @@ export const CONFIG = {
       chargeLock: [0.35, 0.3, 0.25], // warning time after locking
       chargeSpeed: [560, 620, 700], // was 560 (phase 2 only)
       chargeCount: [1, 1, 2], // back-to-back dashes
-      rainCount: [0, 14, 22], // falling feathers (new attack, phases 2-3)
+      rainCount: [0, 14, 22], // feather storm (phases 2-3): feathers per storm
       rainSpeed: [0, 240, 280],
-      rainSniping: [false, false, true], // also shoots aimed feathers during rain
+      rainAngle: [0, 32, 38], // degrees below horizontal, coming from the top-right
+      rainSafeBand: [0, 76, 62], // height of the drifting safe gap (px); bird is 24
       orbSpeed: [130, 145, 160], // was [100, 115]
       restAfterOrb: [0.8, 0.6, 0.45], // was [1.4, 1.0]
     },

@@ -123,9 +123,12 @@ After the 100th pipe, the pipes stop and a **WARNING** flashes. Then King Crow f
 - **Phase 1 (10–7 HP):** aimed feather volleys, wide feather fans, fast pipe
   walls, and a charge. A red lane shows the charge's line first.
 - **Phase 2 (6–4 HP):** everything is faster and denser. Aimed shots lead your
-  movement, pipe-wall gaps slide up and down, and feathers rain from the sky.
+  movement, pipe-wall gaps slide up and down, and a **feather storm** streams in
+  at an angle from the top-right. The storm always leaves one safe gap that
+  drifts up and down; stay in it. Fan waves always leave a hole the bird fits
+  through.
 - **Phase 3 (3–1 HP, enraged and red):** back-to-back charges. It keeps
-  shooting during pipe walls and feather rain.
+  shooting during pipe walls, and the storm is faster with a narrower gap.
 - **Each phase change** bursts a ring of feathers in every direction. The
   notches on the health bar mark where the phases change.
 - **Difficulty knobs:** every number is in `CONFIG.bosses.kingCrow`
