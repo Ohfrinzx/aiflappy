@@ -174,10 +174,32 @@ try {
     const reset = (gen) => { s.hazards.clear(); boss.waitT = 0; boss.waitFn = null; boss.script = gen; };
     const out = { beamMin: Infinity, ringMinGap: Infinity, rings: 0, spiral: 0, spiralBad: 0 };
     boss.hp = 2; // phase 3, the densest
-    // Beams: lanes in one round keep their distance.
-    for (let i = 0; i < 300; i++) {
+    // Beams: lanes in one round keep their distance, wherever the bird is.
+    const birdY = bird.y;
+    for (let i = 0; i < 400; i++) {
+      bird.y = -20 + Math.random() * 380;
       const ys = boss.beamLanes(boss.p(T.beamLanes));
+      if (ys.some((y) => y === null)) out.beamMin = -1;
       for (let a = 0; a < ys.length; a++) for (let c = a + 1; c < ys.length; c++) out.beamMin = Math.min(out.beamMin, Math.abs(ys[a] - ys[c]));
+    }
+    bird.y = birdY;
+    // Tracking: when the beam / dive lane locks, it is on the bird.
+    reset(boss.beam());
+    out.beamOff = null;
+    for (let i = 0; i < 600 && out.beamOff === null; i++) {
+      const main = s.hazards.list.find((o) => o.constructor.name === 'FlameBeam' && o.x1 < 250);
+      if (main && !main.tracking) out.beamOff = Math.abs(main.y - bird.cy);
+      await sleep(4);
+    }
+    reset(boss.dive());
+    out.diveOff = null;
+    out.diveSeen = false;
+    const [dTop, dBot] = boss.diveBand;
+    for (let i = 0; i < 1500 && boss.script; i++) {
+      if (out.diveOff === null && boss.telegraph === 2) out.diveOff = Math.abs(boss.y + (dTop + dBot) / 2 - bird.cy);
+      if (boss.diving) out.diveSeen = true;
+      if (out.diveSeen && !boss.diving && boss.ax > 200) break;
+      await sleep(4);
     }
     // Fireball rings: where each ring's embers cross the bird's near edge.
     const shots = []; const orig = boss.emberAt.bind(boss);
@@ -213,6 +235,8 @@ try {
   });
   const beamBand = pcfg.beamHalf * 2 - 6;
   check(pdodge.beamMin - beamBand >= 30, `beam lanes leave a bird-sized gap (min ${(pdodge.beamMin - beamBand).toFixed(0)}px between flames)`);
+  check(pdodge.beamOff !== null && pdodge.beamOff < 30, `the beam lane tracks the bird, then locks (${pdodge.beamOff?.toFixed(0)}px off at lock)`);
+  check(pdodge.diveOff !== null && pdodge.diveOff < 30 && pdodge.diveSeen, `the flame dive tracks the bird, then dashes (${pdodge.diveOff?.toFixed(0)}px off at lock)`);
   check(pdodge.rings > 0 && pdodge.ringMinGap >= 30, `ember rings leave bird-sized gaps (${pdodge.rings} rings, min ${pdodge.ringMinGap.toFixed(0)}px)`);
   check(pdodge.spiral > 0 && pdodge.spiralBad === 0, `ember spiral always leaves a safe gap (${pdodge.spiral} embers, ${pdodge.spiralBad} inside the gap)`);
   await p.evaluate(() => { const b = window.__game.scenes.current.bosses.boss; b.lives = 1; b.hp = 1; b.hit(1); });

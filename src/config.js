@@ -112,39 +112,47 @@ export const CONFIG = {
       restAfterOrb: [0.8, 0.6, 0.45], // was [1.4, 1.0]
     },
 
-    // Phoenix Lord (pipe 150). Arrays are per phase [1, 2, 3] like King Crow;
-    // phase 3 burns blue and adds ash fog. Damage comes from frost orbs.
+    // Phoenix Lord (pipe 150), the final boss: tuned harder than King Crow.
+    // Arrays are per phase [1, 2, 3]; phase 3 burns blue and adds ash fog.
+    // Damage comes from frost orbs. Comments show the v1.9.0 (easier) values.
     phoenixLord: {
       damagePerHit: 1, // DAMAGE YOU DEAL: HP removed per caught frost orb
       lives: 4, // health bars (each one a "rebirth")
       hp: 10, // HP per health bar
       phaseAt: [6, 3],
-      beamLanes: [1, 2, 2], // flame beams fired together
-      beamCombos: [1, 1, 2], // back-to-back beam rounds
-      beamWarn: [1.0, 0.85, 0.7], // telegraph time before a beam fires
+      beamLanes: [1, 2, 3], // flame beams per round (the first tracks you), was [1, 2, 2]
+      beamCombos: [2, 2, 3], // back-to-back beam rounds, was [1, 1, 2]
+      beamTrack: [0.75, 0.6, 0.5], // seconds the lane follows you (was fixed)
+      beamLock: [0.4, 0.35, 0.3], // warning time after it locks
       beamTime: [0.7, 0.8, 0.9], // how long a beam burns
       beamHalf: 20, // half-height of a beam (px); bird is 24 tall
       beamGap: 96, // min distance between beam centres in the same round
-      pillarCount: [3, 4, 5], // lava pillar walls
+      diveCount: [1, 2, 2], // flame dive: tracked dash across the screen
+      diveTrack: [0.7, 0.6, 0.5], // seconds it follows you before locking
+      diveLock: [0.35, 0.3, 0.25], // warning time after locking
+      diveSpeed: [600, 660, 720],
+      diveTrail: 0.5, // seconds its fire trail keeps burning after it passes
+      pillarCount: [4, 5, 6], // lava pillar walls, was [3, 4, 5]
       pillarSpeed: [170, 190, 210],
       pillarGap: [104, 98, 94],
       pillarSway: [0, 20, 28],
-      pillarSniping: [false, false, true], // throws embers during pillar walls
-      fireballs: [2, 3, 4], // fireballs that burst into an ember ring
-      fireballSpeed: [190, 210, 230],
-      burstCount: [8, 8, 10], // embers per ring (even spacing leaves gaps)
+      pillarSniping: [false, true, true], // throws embers during pillar walls, was phase 3 only
+      fireballs: [3, 4, 5], // lobbed fireballs that burst into an ember ring, was [2, 3, 4]
+      fireballFlight: [0.9, 0.8, 0.7], // seconds in the air
+      fireballGap: [0.6, 0.5, 0.4], // pause between throws
+      burstCount: [10, 10, 12], // embers per ring (even spacing leaves gaps), was [8, 8, 10]
       burstSpeed: [130, 150, 170],
       spiralTime: [0, 2.6, 3.2], // ember spiral (phases 2-3), seconds
       spiralArms: [0, 2, 3],
       spiralSpeed: [0, 150, 170],
       spiralSafeBand: [0, 80, 66], // drifting safe gap the spiral never crosses (px)
-      wisps: [0, 3, 4], // homing wisps (phases 2-3)
-      wispSpeed: [0, 125, 145], // leftward speed
-      wispTurn: [0, 70, 85], // max vertical speed while homing (bird is faster)
+      wisps: [2, 3, 4], // homing wisps (was phases 2-3 only)
+      wispSpeed: [115, 125, 145], // leftward speed
+      wispTurn: [60, 70, 85], // max vertical speed while homing (bird is faster)
       fogRadius: 104, // phase 3 ash fog: clear radius around the bird (px)
       fogChance: 0.5, // share of phase 3 attacks under fog
       orbSpeed: [135, 150, 165],
-      restAfterOrb: [0.75, 0.55, 0.4],
+      restAfterOrb: [0.6, 0.45, 0.3], // was [0.75, 0.55, 0.4]
     },
   },
 

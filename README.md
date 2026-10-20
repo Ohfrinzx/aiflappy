@@ -152,19 +152,25 @@ as pipes), the sky turns to a volcano and Phoenix Lord arrives.
   shoots back at the boss. Each hit is +1 score.
 - **Boss lives:** 4 health bars of 10 HP. When a bar empties it burns to ash,
   then is **reborn** with a full bar. You get 2 hearts, like King Crow.
-- **Phase 1 (10–7 HP):** **flame beams** (a flashing red lane shows where, then
-  a horizontal beam of fire burns there; get out of the lane), **lava pillar**
-  walls, and **fireballs** that burst into a ring of embers. The ring's gaps
-  are wider than the bird when they reach you.
-- **Phase 2 (6–4 HP):** two beams at once, swaying pillar gaps, an **ember
-  spiral** that always leaves one safe gap drifting up and down (stay in it),
-  and **homing wisps** (pink flames) that follow your height. They stop steering
-  just before they reach you, so move at the last moment.
-- **Phase 3 (3–1 HP, blue flames):** back-to-back beam rounds, embers thrown
-  during pillar walls, a denser spiral, and **ash fog** on some attacks: only
-  a circle around the bird stays clear. Beam warnings always show through.
+It's the final boss and is tuned to be harder than King Crow.
+
+- **Phase 1 (10–7 HP):** **flame beams**: a red lane follows your height
+  (flickering), then locks (solid) and a beam of fire burns there. Get out
+  of the lane once it locks. Two rounds back to back. **Flame dive**: same idea
+  with the whole Phoenix. It tracks you, locks, dashes across the screen and
+  leaves a fire trail at that height for a moment. Also **lava pillar** walls,
+  **lobbed fireballs** that burst into a ring of embers (the gaps are wider
+  than the bird by the time they reach you), and **homing wisps** (pink flames)
+  that follow your height. Wisps stop steering just before they reach you, so
+  move at the last moment.
+- **Phase 2 (6–4 HP):** extra beam lanes erupt alongside the tracked one,
+  dives come twice, pillar gaps sway and it throws embers between them, and an
+  **ember spiral** always leaves one safe gap drifting up and down (stay in it).
+- **Phase 3 (3–1 HP, blue flames):** three beam rounds with three lanes, a
+  denser spiral, and **ash fog** on some attacks: only a circle around the
+  bird stays clear. Beam and dive warnings always show through.
 - Every attack can be dodged by moving up and down only. The smoke test checks
-  the beam lanes, the ember rings and the spiral.
+  the beam lanes, the beam and dive tracking, the ember rings and the spiral.
 - **Difficulty knobs:** every number is in `CONFIG.bosses.phoenixLord`
   (`src/config.js`).
 - **Winning** shows the Victory screen and the flame "inferno" medal. To keep

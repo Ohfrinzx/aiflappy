@@ -1,10 +1,12 @@
-// Phoenix Lord — the pipe-150 boss. Three phases (see CONFIG.bosses.phoenixLord):
-//   1: flame beams (a warning lane first), lava pillar walls, and fireballs
-//      that burst into a ring of embers
-//   2: two beams at once, swaying pillars, an ember spiral with a drifting
-//      safe gap, and homing wisps
-//   3 (blue flames): back-to-back beams, embers thrown during pillar walls, a
-//      denser spiral, and ash fog that hides everything far from the bird
+// Phoenix Lord — the pipe-150 (final) boss, harder than King Crow. Three phases
+// (see CONFIG.bosses.phoenixLord):
+//   1: flame beams whose warning lane tracks you, then locks; flame dives (a
+//      tracked dash that leaves a burning trail); lava pillar walls; lobbed
+//      fireballs that burst into a ring of embers; homing wisps
+//   2: extra beam lanes, double dives, swaying pillars with embers thrown in
+//      between, and an ember spiral with a drifting safe gap
+//   3 (blue flames): three beam rounds, a denser spiral, and ash fog that
+//      hides everything far from the bird
 // Every attack is dodged by moving up or down (the bird's x never changes).
 // Each emptied health bar is a "rebirth": it burns to ash and reignites.
 // Damage: it drops frost orbs; fly into one and it fires back at the boss.
@@ -21,15 +23,19 @@ const FIRE = ['#ff6a1a', '#ffd23a', '#fff6c0', '#e8401a'];
 
 // Attack weights per phase (index 0 = phase 1).
 const ATTACKS = [
-  [{ id: 'beam', weight: 3 }, { id: 'pillars', weight: 2 }, { id: 'fireballs', weight: 3 }],
-  [{ id: 'beam', weight: 3 }, { id: 'pillars', weight: 2 }, { id: 'fireballs', weight: 2 }, { id: 'spiral', weight: 2 }, { id: 'wisps', weight: 2 }],
-  [{ id: 'beam', weight: 3 }, { id: 'pillars', weight: 2 }, { id: 'fireballs', weight: 2 }, { id: 'spiral', weight: 3 }, { id: 'wisps', weight: 2 }],
+  [{ id: 'beam', weight: 3 }, { id: 'dive', weight: 2 }, { id: 'pillars', weight: 2 }, { id: 'fireballs', weight: 2 }, { id: 'wisps', weight: 2 }],
+  [{ id: 'beam', weight: 3 }, { id: 'dive', weight: 2 }, { id: 'pillars', weight: 2 }, { id: 'fireballs', weight: 2 }, { id: 'spiral', weight: 2 }, { id: 'wisps', weight: 2 }],
+  [{ id: 'beam', weight: 3 }, { id: 'dive', weight: 3 }, { id: 'pillars', weight: 2 }, { id: 'fireballs', weight: 2 }, { id: 'spiral', weight: 3 }, { id: 'wisps', weight: 2 }],
 ];
+const LANE_LO = 30; // beam centres stay within [LANE_LO, groundY - LANE_LO]
 
 export class PhoenixLord extends Boss {
   constructor(scene) {
     super(scene, { hp: T.hp, lives: T.lives, x: CONFIG.width + 40, y: HOME_Y });
     this.mouthOpen = false;
+    this.diving = false;
+    this.diveSpeed = 0;
+    this.telegraph = 0; // dive warning lane: 1 tracking, 2 locked
     this.ash = false; // burnt out (rebirth / defeat)
     this.fog = 0; // ash fog strength 0..1 (phase 3)
     this.fogTarget = 0;
@@ -49,7 +55,7 @@ export class PhoenixLord extends Boss {
   }
 
   get frameName() {
-    const wing = Math.floor(this.t * (this.phase === 3 ? 9 : 6)) % 2;
+    const wing = this.diving ? 1 : Math.floor(this.t * (this.phase === 3 ? 9 : 6)) % 2;
     const idx = wing + (this.mouthOpen ? 2 : 0);
     if (this.ash) return `phoenix-ash-${idx}`;
     if (this.hurtT > 0 && Math.floor(this.hurtT * 30) % 2 === 0) return `phoenix-hurt-${idx}`;
@@ -121,44 +127,139 @@ export class PhoenixLord extends Boss {
     }
   }
 
-  // Beam heights for one round: the first is aimed at the bird, the rest keep
-  // at least T.beamGap between centres so a bird-sized gap always remains.
-  beamLanes(n) {
-    const lo = 30;
-    const hi = CONFIG.groundY - 30;
-    const ys = [clamp(this.bird.cy, lo, hi)];
-    for (let tries = 0; ys.length < n && tries < 60; tries++) {
-      const y = rand(lo, hi);
-      if (ys.every((o) => Math.abs(o - y) >= T.beamGap)) ys.push(y);
+  // Extra (non-tracking) beam lanes for one round, T.beamGap apart, leaving
+  // room for the tracked lane next to the bird.
+  extraLanes(n) {
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const ys = [];
+      for (let tries = 0; ys.length < n && tries < 60; tries++) {
+        const y = rand(LANE_LO, CONFIG.groundY - LANE_LO);
+        if (ys.every((o) => Math.abs(o - y) >= T.beamGap)) ys.push(y);
+      }
+      if (ys.length === n && this.trackY(this.bird.cy, ys) !== null) return ys;
     }
-    return ys;
+    return [];
   }
 
-  // Flame beams: a flashing lane, then a horizontal beam of fire. The first
-  // comes from the beak; extra lanes erupt from the right edge.
+  // The tracked lane's height: as close to `y` as possible while keeping
+  // T.beamGap from every extra lane (so a bird-sized gap always remains).
+  trackY(y, extras) {
+    const lo = LANE_LO;
+    const hi = CONFIG.groundY - LANE_LO;
+    const ok = (v) => v >= lo && v <= hi && extras.every((e) => Math.abs(e - v) >= T.beamGap);
+    const want = clamp(y, lo, hi);
+    if (ok(want)) return want;
+    let best = null;
+    for (const v of [lo, hi, ...extras.flatMap((e) => [e - T.beamGap - 0.01, e + T.beamGap + 0.01])]) {
+      if (ok(v) && (best === null || Math.abs(v - y) < Math.abs(best - y))) best = v;
+    }
+    return best;
+  }
+
+  // All lanes of one round (used by the smoke test).
+  beamLanes(n) {
+    const extras = this.extraLanes(n - 1);
+    return [this.trackY(this.bird.cy, extras), ...extras];
+  }
+
+  // Flame beams: the first lane follows the bird (flickering), then locks
+  // (solid) and fires from the beak; extra lanes erupt from the right edge.
   *beam() {
     const combos = this.p(T.beamCombos);
+    this.tx = HOME_X;
     for (let c = 0; c < combos; c++) {
-      const ys = this.beamLanes(this.p(T.beamLanes));
-      const warn = this.p(T.beamWarn);
+      const extras = this.extraLanes(this.p(T.beamLanes) - 1);
+      const track = this.p(T.beamTrack);
+      const lock = this.p(T.beamLock);
       const burn = this.p(T.beamTime);
-      this.tx = HOME_X;
-      this.ty = clamp(ys[0] - BEAK_Y, -20, 300);
+      const fire = () => {
+        this.mouthOpen = true;
+        this.sfx('flame');
+        this.scene.game.renderer.shake(burn, 2);
+      };
+      const main = new FlameBeam(this.trackY(this.bird.cy, extras), T.beamHalf, HOME_X + 8, lock, burn, fire);
+      main.tracking = true;
+      this.scene.hazards.add(main);
+      for (const y of extras) this.scene.hazards.add(new FlameBeam(y, T.beamHalf, CONFIG.width + 8, track + lock, burn));
       this.sfx('charge');
-      ys.forEach((y, i) => {
-        const onFire = i === 0
-          ? () => {
-            this.mouthOpen = true;
-            this.sfx('flame');
-            this.scene.game.renderer.shake(burn, 2);
-          }
-          : null;
-        this.scene.hazards.add(new FlameBeam(y, T.beamHalf, i === 0 ? HOME_X + 8 : CONFIG.width + 8, warn, burn, onFire));
-      });
-      yield warn + burn;
+      const k = Math.min(1, 14 / CONFIG.tickRate);
+      for (let t = 0; t < track; t += 1 / CONFIG.tickRate) {
+        main.y = this.trackY(lerp(main.y, this.bird.cy, k), extras) ?? main.y;
+        this.ty = clamp(main.y - BEAK_Y, -20, 300);
+        yield 0;
+      }
+      main.tracking = false;
+      yield lock + burn;
       this.mouthOpen = false;
-      yield c < combos - 1 ? 0.15 : 0.5;
+      yield c < combos - 1 ? 0.2 : 0.5;
     }
+  }
+
+  // Rows of the dive frame that are solid (the warning lane covers them).
+  get diveBand() {
+    if (!this.band) {
+      const m = this.sprites.mask('phoenix-3');
+      let top = m.h;
+      let bot = 0;
+      for (let y = 0; y < m.h; y++) {
+        for (let x = 0; x < m.w; x++) {
+          if (m.data[y * m.w + x]) {
+            top = Math.min(top, y);
+            bot = Math.max(bot, y + 1);
+          }
+        }
+      }
+      this.band = [top, bot];
+    }
+    return this.band;
+  }
+
+  // Flame dive: a red lane follows the bird, locks, then the Phoenix dashes
+  // across at that height, leaving a trail of fire that burns a moment longer.
+  *dive() {
+    const count = this.p(T.diveCount);
+    const [top, bot] = this.diveBand;
+    const mid = (top + bot) / 2;
+    const aim = () => clamp(this.bird.cy - mid, -top - 10, CONFIG.groundY - bot + 10);
+    for (let c = 0; c < count; c++) {
+      if (c > 0) {
+        // Re-enter from the right edge for the follow-up dive.
+        this.ax = CONFIG.width - 20;
+        this.ay = aim();
+      }
+      this.tx = HOME_X;
+      this.ease = 8; // follow the bird closely while tracking
+      this.sfx('charge');
+      this.telegraph = 1;
+      const track = this.p(T.diveTrack);
+      for (let t = 0; t < track; t += 1 / CONFIG.tickRate) {
+        this.ty = aim();
+        yield 0;
+      }
+      this.telegraph = 2;
+      yield this.p(T.diveLock);
+      this.telegraph = 0;
+      this.diveSpeed = this.p(T.diveSpeed);
+      this.diving = true;
+      this.mouthOpen = true;
+      this.sfx('flame');
+      const trail = new FlameBeam(this.ay + mid, 12, Math.min(CONFIG.width + 8, this.ax + 90), 0, 99);
+      this.scene.hazards.add(trail);
+      while (this.ax > -130) {
+        trail.left = clamp(this.ax + 90, 0, trail.x1); // starts behind the tail
+        yield 0;
+      }
+      trail.left = 0;
+      trail.burn = trail.t + T.diveTrail;
+      this.diving = false;
+      this.mouthOpen = false;
+    }
+    this.ax = CONFIG.width + 40;
+    this.ay = HOME_Y;
+    this.tx = HOME_X;
+    this.ty = HOME_Y;
+    this.ease = 3.5;
+    yield 0.9;
   }
 
   // Lava pillars scroll in like pipe walls (gaps sway from phase 2). In phase 3
@@ -201,28 +302,28 @@ export class PhoenixLord extends Boss {
     this.ease = 3.5;
   }
 
-  // Fireballs fly to a point level with the bird and burst into an even ring
-  // of embers. The burst is kept ~80+ px from the bird so the ring's gaps are
-  // wider than the bird by the time they reach it.
+  // Fireballs are lobbed in an arc and burst level with the bird into an even
+  // ring of embers. The burst is kept ~80+ px from the bird so the ring's gaps
+  // are wider than the bird by the time they reach it.
   *fireballs() {
     this.tx = HOME_X + 30;
     const n = this.p(T.fireballs);
     for (let i = 0; i < n; i++) {
-      this.ty = clamp(this.bird.cy - BEAK_Y + rand(-70, 70), 0, 280);
-      yield 0.45;
+      this.ty = clamp(this.bird.cy - BEAK_Y + rand(-60, 60), 0, 280);
+      yield 0.3;
       this.mouthOpen = true;
       const b = this.beak;
       const bx = this.bird.x + this.bird.w + rand(80, 92);
       const by = clamp(this.bird.cy, 40, CONFIG.groundY - 50);
-      this.scene.hazards.add(new Fireball(this.sprites, b.x, b.y, bx, by, this.p(T.fireballSpeed), (x, y) => this.burst(x, y)));
+      this.scene.hazards.add(new Fireball(this.sprites, b.x, b.y, bx, by, this.p(T.fireballFlight), (x, y) => this.burst(x, y)));
       this.sfx('shoot');
       yield 0.12;
       this.mouthOpen = false;
-      yield 0.6;
+      yield this.p(T.fireballGap);
     }
     this.tx = HOME_X;
     this.ty = HOME_Y;
-    yield 0.6;
+    yield 0.8;
   }
 
   burst(x, y) {
@@ -328,6 +429,12 @@ export class PhoenixLord extends Boss {
   }
 
   move(dt) {
+    if (this.diving) {
+      this.ax -= this.diveSpeed * dt;
+      this.x = this.ax;
+      this.y = this.ay;
+      return;
+    }
     if (this.defeated && this.falling) {
       this.vy += 700 * dt;
       this.ay += this.vy * dt;
@@ -337,19 +444,30 @@ export class PhoenixLord extends Boss {
       return;
     }
     super.move(dt);
+    if (this.telegraph === 2) this.x += Math.round(rand(-2, 2));
+  }
+
+  // Dive warning lane, drawn above the fog like the beam warnings.
+  renderOverlay(r) {
+    if (!this.telegraph) return;
+    const [top, bot] = this.diveBand;
+    const on = this.telegraph === 2 || Math.floor(this.t * 12) % 2 === 0;
+    if (on) r.rect(0, Math.round(this.y + top), Math.round(this.x), bot - top, '#ff3020', this.telegraph === 2 ? 0.36 : 0.2);
   }
 
   // A health bar emptied but lives remain: burn to ash, then reignite.
   *revive() {
     const s = this.scene;
     this.mouthOpen = false;
+    this.diving = false;
+    this.telegraph = 0;
     this.lastAttack = null;
     this.fogTarget = 0;
     this.safeCenter = null;
     s.hazards.clear();
     s.pipes.list = s.pipes.list.filter((p) => p.scores);
-    if (this.ax > CONFIG.width || this.ay < -60) {
-      this.ax = CONFIG.width + 40; // was off screen (pillar walls): come back from the right
+    if (this.ax > CONFIG.width || this.ax < -40 || this.ay < -60) {
+      this.ax = CONFIG.width + 40; // was off screen (pillars / dive): come back from the right
       this.ay = HOME_Y;
     }
     this.tx = HOME_X;
@@ -379,6 +497,8 @@ export class PhoenixLord extends Boss {
 
   *defeat() {
     this.mouthOpen = true;
+    this.diving = false;
+    this.telegraph = 0;
     this.fogTarget = 0;
     this.safeCenter = null;
     const s = this.scene;

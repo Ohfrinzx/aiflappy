@@ -326,6 +326,7 @@ export class PlayScene {
     }
     this.bosses.renderFog(r, a);
     this.hazards.renderOverlay(r, a);
+    this.bosses.renderOverlay(r, a);
     this.bird.render(r, a);
     this.particles.render(r);
     if (this.game.params.hitboxes) renderHitboxes(r, this);

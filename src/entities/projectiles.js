@@ -133,26 +133,32 @@ export class Ember extends Feather {
   }
 }
 
-// Big fireball flying to a point, where it bursts (onBurst spawns the embers).
+// Big fireball lobbed in an arc to a point, where it bursts (onBurst spawns
+// the embers) after `flight` seconds.
+const LOB_GRAVITY = 700;
+
 export class Fireball {
-  constructor(sprites, x, y, tx, ty, speed, onBurst) {
+  constructor(sprites, x, y, tx, ty, flight, onBurst) {
     this.sprites = sprites;
     this.x = this.px = x;
     this.y = this.py = y;
-    const d = Math.max(1, Math.hypot(tx - x, ty - y));
-    this.vx = ((tx - x) / d) * speed;
-    this.vy = ((ty - y) / d) * speed;
-    this.burstT = d / speed;
+    this.vx = (tx - x) / flight;
+    this.vy = (ty - y) / flight - 0.5 * LOB_GRAVITY * flight;
+    this.burstT = flight;
     this.onBurst = onBurst;
-    this.angle = Math.atan2(this.vy, this.vx) * (180 / Math.PI) + 180; // sprite points left
     this.radius = 7;
     this.t = 0;
+  }
+
+  get angle() {
+    return Math.atan2(this.vy, this.vx) * (180 / Math.PI) + 180; // sprite points left
   }
 
   update(dt) {
     this.px = this.x;
     this.py = this.y;
     this.t += dt;
+    this.vy += LOB_GRAVITY * dt;
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     if (this.t >= this.burstT) {
@@ -214,18 +220,23 @@ export class Wisp {
   }
 }
 
-// Horizontal flame beam from x=0 to x1 at height y: a flashing warning lane
-// for `warn` seconds, then it burns for `burn` seconds. Drawn above the ash
-// fog (renderOverlay) so the warning is always visible.
+// Horizontal flame beam from x=left to x1 at height y: a warning lane for
+// `warn` seconds, then it burns for `burn` seconds. The owner may move `y`
+// while `tracking` (the lane flickers), then sets it false to lock the lane
+// (solid warning). Drawn above the ash fog (renderOverlay) so the warning is
+// always visible.
 export class FlameBeam {
-  constructor(y, half, x1, warn, burn, onFire) {
+  constructor(y, half, x1, warn, burn, onFire = null) {
     this.y = y;
     this.half = half;
+    this.left = 0;
     this.x1 = x1;
     this.warn = warn;
     this.burn = burn;
     this.onFire = onFire;
+    this.tracking = false;
     this.t = 0;
+    this.age = 0; // total time alive (t only counts once locked)
   }
 
   get burning() {
@@ -233,6 +244,8 @@ export class FlameBeam {
   }
 
   update(dt) {
+    this.age += dt;
+    if (this.tracking) return true; // the warning starts counting once locked
     this.t += dt;
     if (this.burning && this.onFire) {
       this.onFire();
@@ -243,7 +256,7 @@ export class FlameBeam {
 
   // Lethal band: a little thinner than the drawn flame.
   get rects() {
-    return this.burning ? [[0, this.y - this.half + 3, this.x1, this.half * 2 - 6]] : [];
+    return this.burning ? [[this.left, this.y - this.half + 3, this.x1 - this.left, this.half * 2 - 6]] : [];
   }
 
   hits(bird) {
@@ -257,11 +270,15 @@ export class FlameBeam {
   renderOverlay(r) {
     const y0 = Math.round(this.y - this.half);
     const h = this.half * 2;
+    const x0 = this.left;
+    const w = this.x1 - x0;
+    if (w <= 0) return;
     if (!this.burning) {
-      const on = Math.floor(this.t * 10) % 2 === 0;
-      r.rect(0, y0, this.x1, h, '#ff3020', on ? 0.28 : 0.14);
-      r.rect(0, y0, this.x1, 1, '#ff6a40', 0.8);
-      r.rect(0, y0 + h - 1, this.x1, 1, '#ff6a40', 0.8);
+      // Tracking: flickers. Locked: solid and brighter (move now!).
+      const on = !this.tracking || Math.floor(this.age * 12) % 2 === 0;
+      r.rect(x0, y0, w, h, '#ff3020', this.tracking ? (on ? 0.22 : 0.1) : 0.36);
+      r.rect(x0, y0, w, 1, '#ff6a40', 0.8);
+      r.rect(x0, y0 + h - 1, w, 1, '#ff6a40', 0.8);
       return;
     }
     const k = Math.min(1, (this.t - this.warn) / 0.08); // quick flare-up
@@ -270,7 +287,7 @@ export class FlameBeam {
     const wob = Math.floor(this.t * 30) % 2;
     const band = (inset, color, alpha) => {
       const hh = Math.max(1, Math.round((h - inset * 2) * k));
-      r.rect(0, Math.round(this.y - hh / 2) + (inset ? wob : 0), this.x1, hh, color, alpha * a);
+      r.rect(x0, Math.round(this.y - hh / 2) + (inset ? wob : 0), w, hh, color, alpha * a);
     };
     band(0, '#e8401a', 0.9);
     band(5, '#ff8a1a', 0.95);

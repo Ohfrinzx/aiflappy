@@ -53,4 +53,6 @@ GitHub Pages from `main`. See README.md for the architecture.
 - Boss attacks must be dodgeable by vertical movement only (the bird's x is
   fixed): no straight-down projectiles through the bird's column; patterns
   must leave a bird-sized gap. The smoke test checks the fan and storm, and
-  Phoenix Lord's beam lanes, ember rings and spiral.
+  Phoenix Lord's beam lanes, beam/dive tracking, ember rings and spiral.
+- Phoenix Lord must stay harder than King Crow (owner feedback, v1.10.0):
+  tracked beams and dives, 5+ attacks from phase 1.

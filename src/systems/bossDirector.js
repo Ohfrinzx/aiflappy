@@ -89,6 +89,11 @@ export class BossDirector {
     this.boss?.renderFog?.(r, alpha);
   }
 
+  // Warning lanes, drawn above the fog.
+  renderOverlay(r, alpha) {
+    this.boss?.renderOverlay?.(r, alpha);
+  }
+
   renderHud(r) {
     const sp = this.scene.game.sprites;
     if (this.state === 'warning' && Math.floor(this.warnT * 4) % 2 === 0) {
