@@ -1,7 +1,11 @@
 // Long-term player progress: stats across runs, unlocked birds, chosen bird.
 // Stored in localStorage via Storage (keys: best, stats, unlocked, bird).
 import { BIRDS, birdById } from '../content/birds.js';
+import { BOSSES } from '../content/bosses/index.js';
 import { pick } from '../core/math.js';
+
+// Per-boss counters (bossReached / bossesDefeated / flawlessWins are King Crow's).
+const BOSS_STATS = Object.values(BOSSES).flatMap((b) => Object.values(b.stats));
 
 export class Progress {
   constructor(storage, { unlockAll = false } = {}) {
@@ -14,16 +18,15 @@ export class Progress {
 
   get stats() {
     const s = this.storage.get('stats', {});
-    return {
+    const out = {
       best: this.storage.get('best', 0),
       runs: s.runs ?? 0,
       totalPipes: s.totalPipes ?? 0,
       flaps: s.flaps ?? 0,
       nightRuns: s.nightRuns ?? 0,
-      bossReached: s.bossReached ?? 0,
-      bossesDefeated: s.bossesDefeated ?? 0,
-      flawlessWins: s.flawlessWins ?? 0,
     };
+    for (const k of BOSS_STATS) out[k] = s[k] ?? 0;
+    return out;
   }
 
   isUnlocked(bird) {
@@ -54,18 +57,23 @@ export class Progress {
   }
 
   // Records a finished run; returns { best, prevBest, newBirds }.
-  recordRun({ score, pipes, reachedBoss, bossesDefeated, flaps = 0, night = false, flawless = false }) {
+  // reached / beaten / flawless are lists of boss ids (see content/bosses).
+  recordRun({ score, pipes, reached = [], beaten = [], flawless = [], flaps = 0, night = false }) {
     const prevBest = this.storage.get('best', 0);
     const best = Math.max(prevBest, score);
     if (best > prevBest) this.storage.set('best', best);
     const s = this.storage.get('stats', {});
     s.runs = (s.runs ?? 0) + 1;
     s.totalPipes = (s.totalPipes ?? 0) + pipes;
-    s.bossReached = (s.bossReached ?? 0) + (reachedBoss ? 1 : 0);
-    s.bossesDefeated = (s.bossesDefeated ?? 0) + bossesDefeated;
     s.flaps = (s.flaps ?? 0) + flaps;
     s.nightRuns = (s.nightRuns ?? 0) + (night ? 1 : 0);
-    s.flawlessWins = (s.flawlessWins ?? 0) + (flawless && bossesDefeated > 0 ? 1 : 0);
+    const bump = (ids, kind) => ids.forEach((id) => {
+      const key = BOSSES[id].stats[kind];
+      s[key] = (s[key] ?? 0) + 1;
+    });
+    bump(reached, 'reached');
+    bump(beaten, 'defeated');
+    bump(flawless, 'flawless');
     this.storage.set('stats', s);
     return { best, prevBest, newBirds: this.checkUnlocks() };
   }

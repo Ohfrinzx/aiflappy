@@ -2,7 +2,8 @@
 // URL flags (for testing): ?start=95 begins a run at score 95, ?god disables death,
 // ?play skips the title screen, ?perf shows a frame-time graph, ?hitboxes draws
 // collision shapes, ?nosound mutes, ?fps=N caps the drawing frame rate,
-// ?unlockall makes every bird available.
+// ?unlockall makes every bird available. practice.html opens the practice
+// menu; ?boss=<id> (e.g. practice.html?boss=phoenixLord) practices that boss.
 import { CONFIG } from './config.js';
 import { Loop } from './core/loop.js';
 import { Renderer } from './core/renderer.js';
@@ -13,6 +14,8 @@ import { Audio } from './audio/audio.js';
 import { loadSprites } from './assets.js';
 import { TitleScene } from './scenes/title.js';
 import { PlayScene } from './scenes/play.js';
+import { PracticeScene } from './scenes/practice.js';
+import { BOSSES } from './content/bosses/index.js';
 import { Progress } from './systems/progress.js';
 import { VERSION } from './version.js';
 import { PerfOverlay } from './ui/perfOverlay.js';
@@ -55,6 +58,9 @@ function readParams() {
     // down (tests whether ProMotion refresh changes on touch cause hitches).
     keepalive: q.has('keepalive'),
     autoflap,
+    // Practice mode: practice.html (menu) or ?boss=<id> (straight into that boss).
+    practice: window.__PRACTICE === true || q.has('boss'),
+    boss: BOSSES[q.get('boss')] ? q.get('boss') : null,
     // ?fps=N caps how often frames are drawn (10-120); physics are unaffected.
     fps: q.has('fps') ? Math.min(120, Math.max(10, parseInt(q.get('fps'), 10) || 60)) : 0,
   };
@@ -92,6 +98,13 @@ async function boot() {
     toTitle() {
       scenes.transition(() => new TitleScene(game));
     },
+    toPractice() {
+      scenes.transition(() => new PracticeScene(game));
+    },
+    // Practice fight against one boss; `attempt` counts retries.
+    practiceRun(bossId, attempt = 1) {
+      scenes.transition(() => new PlayScene(game, { practice: bossId, attempt }));
+    },
     toggleMute() {
       audio.setMuted(!audio.muted);
       storage.set('muted', audio.muted);
@@ -108,7 +121,11 @@ async function boot() {
     if (document.hidden) scenes.current?.onBlur?.();
   });
 
-  if (params.play || params.start) {
+  if (params.boss) {
+    scenes.set(new PlayScene(game, { practice: params.boss }));
+  } else if (params.practice) {
+    scenes.set(new PracticeScene(game));
+  } else if (params.play || params.start) {
     game.runCount = 1;
     scenes.set(new PlayScene(game, { startScore: params.start }));
   } else {

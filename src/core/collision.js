@@ -60,3 +60,18 @@ export function maskHitsCircle(m, mx, my, cx, cy, r) {
   }
   return false;
 }
+
+// Does any solid pixel of mask (placed at mx,my) fall inside the rectangle?
+export function maskHitsRect(m, mx, my, rx, ry, rw, rh) {
+  mx = Math.round(mx);
+  my = Math.round(my);
+  const x0 = Math.max(mx, Math.floor(rx));
+  const y0 = Math.max(my, Math.floor(ry));
+  const x1 = Math.min(mx + m.w, Math.ceil(rx + rw));
+  const y1 = Math.min(my + m.h, Math.ceil(ry + rh));
+  for (let y = y0; y < y1; y++) {
+    const row = (y - my) * m.w - mx;
+    for (let x = x0; x < x1; x++) if (m.data[row + x]) return true;
+  }
+  return false;
+}

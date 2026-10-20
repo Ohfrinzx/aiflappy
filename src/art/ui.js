@@ -56,6 +56,8 @@ export function makePanel() {
 
 const CROWN = ['#.#.#', '#####', '#####'];
 const STAR = ['..#..', '.###.', '#####', '.###.', '.#.#.'];
+const FLAME = ['..#..', '.##..', '.###.', '#####', '.###.'];
+const EMBLEMS = { crown: CROWN, flame: FLAME };
 
 // 22x22 native medal.
 export function makeMedal(m) {
@@ -65,7 +67,7 @@ export function makeMedal(m) {
   p.ellipse(11, 11, 9.5, 9.5, c.base);
   p.ellipse(9, 9, 6, 6, c.light);
   p.ellipse(11, 11, 6.5, 6.5, c.base);
-  const em = new Pix(7, 7).map(m.emblem === 'crown' ? CROWN : STAR, { '#': c.emblem }, 1, 1);
+  const em = new Pix(7, 7).map(EMBLEMS[m.emblem] ?? STAR, { '#': c.emblem }, 1, 1);
   if (m.emblem === 'crown') em.map(['..#..'], { '#': c.light }, 1, 2);
   p.blit(em.outline(c.rim), 8, 8);
   p.set(6, 5, PAL.white);
@@ -189,5 +191,25 @@ export function makePickerSprites() {
     'random-mark': renderText('?', { cell: 2, bold: 1, fill: '#ffffff', outer: PAL.outline }),
     'text-newbird': renderText('NEW BIRD!', { font: 'small', fill: '#ffe066', outer: PAL.outline }),
     'text-newbirds': renderText('NEW BIRDS!', { font: 'small', fill: '#ffe066', outer: PAL.outline }),
+  };
+}
+
+// White button with an orange label (PRACTICE, BACK).
+function textButton(label) {
+  const text = textPix(label, { font: 'small', fill: PAL.orangeDark });
+  return button(text.w + 10, 13, (p) => p.blit(text, 5, 4));
+}
+
+// Practice mode: menu title, boss cards, buttons and the retry prompt.
+export function makePracticeSprites() {
+  const card = roundedBox(124, 48, PAL.outline, PAL.panelLight);
+  card.rect(2, 2, 120, 44, PAL.panel);
+  card.hline(2, 45, 120, PAL.panelShade);
+  return {
+    'text-practice': renderText('Practice', { ...TITLE, fill: '#ffb030', fillBottom: '#e8401a' }),
+    'text-retry': renderText('TAP TO RETRY', { font: 'small', fill: PAL.white, outer: PAL.outline, scale: 3 }),
+    'practice-card': card.toCanvas(),
+    'button-practice': textButton('PRACTICE'),
+    'button-back': textButton('BACK'),
   };
 }

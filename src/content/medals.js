@@ -1,9 +1,15 @@
 // Medals, checked top to bottom; the first match is awarded.
-// `test(run)` receives { score, best, bossesDefeated }.
+// `test(run)` receives { score, best, beaten } (beaten = boss ids this run).
 export const MEDALS = [
   {
+    id: 'inferno',
+    test: (r) => r.beaten.includes('phoenixLord'),
+    colors: { rim: '#8a1a08', base: '#ff6a1a', light: '#ffd23a', emblem: '#fff6c0' },
+    emblem: 'flame',
+  },
+  {
     id: 'champion',
-    test: (r) => r.bossesDefeated > 0,
+    test: (r) => r.beaten.length > 0,
     colors: { rim: '#a8741a', base: '#f5c52b', light: '#fff1a8', emblem: '#e83a2a' },
     emblem: 'crown',
   },

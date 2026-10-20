@@ -1,5 +1,6 @@
 // Start screen: logo, character picker (arrows around the hovering bird),
-// Play button. Locked birds show as silhouettes with their unlock goal.
+// Play button, Practice button. Locked birds show as silhouettes with their
+// unlock goal.
 import { CONFIG } from '../config.js';
 import { THEMES } from '../content/themes.js';
 import { BIRDS } from '../content/birds.js';
@@ -35,6 +36,12 @@ export class TitleScene {
     const ay = L.titleBirdY + 12 - arrow.height / 2;
     this.left = new Button(sp, 'button-left', Math.round(W / 2 - 64 - arrow.width / 2), ay, () => this.step(-1));
     this.right = new Button(sp, 'button-right', Math.round(W / 2 + 64 - arrow.width / 2), ay, () => this.step(1));
+    const prac = sp.get('button-practice');
+    this.practice = new Button(sp, 'button-practice', Math.round((W - prac.width) / 2), CONFIG.groundY + 14, () => {
+      if (!this.playable) return;
+      game.audio.play('swoosh');
+      game.toPractice();
+    });
     this.applySelection();
   }
 
@@ -66,7 +73,7 @@ export class TitleScene {
     if (evt.type === 'mute') return this.game.toggleMute();
     if (evt.type === 'nav') return this.step(evt.dir);
     if (this.left.handle(evt) || this.right.handle(evt)) return;
-    if (this.play.handle(evt)) return;
+    if (this.play.handle(evt) || this.practice.handle(evt)) return;
     if (evt.type === 'press' && evt.source === 'key') this.play.onClick();
   }
 
@@ -113,8 +120,9 @@ export class TitleScene {
     if (locked) r.drawCentered(sp.text(this.progress.goalText(skin)), W / 2, L.titleBirdY + 50);
 
     this.play.render(r, this.playable ? 1 : 0.35);
+    this.practice.render(r, this.playable ? 1 : 0.35);
     // Version, bottom-centre in the dirt (clear of the iPhone home indicator).
     const ver = sp.get('text-version');
-    r.drawCentered(ver, W / 2, Math.round(Math.max(CONFIG.groundY + 40, r.viewBottom - 34)));
+    r.drawCentered(ver, W / 2, Math.round(Math.max(CONFIG.groundY + 56, r.viewBottom - 34)));
   }
 }

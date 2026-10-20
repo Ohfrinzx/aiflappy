@@ -44,6 +44,13 @@ GitHub Pages from `main`. See README.md for the architecture.
   chosen bird in `src/systems/progress.js`. Bird collision always uses the
   plain `bird-hitbox-*` frames so skins never change difficulty.
 - `?unlockall` makes all birds available (not saved).
+- Bosses: King Crow (pipe 100, then pipes resume at dusk) and Phoenix Lord
+  (pipe 150, volcano, last boss). Schedule + themes in
+  `CONFIG.bosses.encounters`; registry (name, stats keys) in
+  `src/content/bosses/index.js`. Per-boss stats feed bird unlocks.
+- Practice mode: `practice.html` (menu) or `?boss=<id>`; tap-to-retry panel,
+  records nothing. `?start=149` jumps to Phoenix Lord in a normal run.
 - Boss attacks must be dodgeable by vertical movement only (the bird's x is
   fixed): no straight-down projectiles through the bird's column; patterns
-  must leave a bird-sized gap. The smoke test checks the fan and storm.
+  must leave a bird-sized gap. The smoke test checks the fan and storm, and
+  Phoenix Lord's beam lanes, ember rings and spiral.

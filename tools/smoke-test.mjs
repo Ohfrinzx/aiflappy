@@ -137,10 +137,129 @@ try {
   check(dodge.fanMinHole >= 30, `every fan wave leaves a bird-sized hole (min ${dodge.fanMinHole.toFixed(0)}px, bird is 24)`);
   check(dodge.storm > 0 && dodge.stormBad === 0, `feather storm always leaves a safe gap (${dodge.storm} feathers, ${dodge.stormBad} inside the gap)`);
 
-  // Last life: emptying the bar defeats it.
+  // Last life: emptying the bar defeats it. King Crow isn't the last boss, so
+  // the pipes come back (at dusk) instead of the victory screen.
   await p.evaluate(() => { const b = window.__game.scenes.current.bosses.boss; b.lives = 1; b.hp = 1; b.hit(1); });
-  check(await waitFor(p, () => window.__game.scenes.current.victory, 15), 'last life emptied -> victory');
+  check(
+    await waitFor(p, () => { const s = window.__game.scenes.current; return s.bosses.defeated.includes('kingCrow') && s.state === 'playing' && !s.victory && s.pipes.list.some((q) => q.scores); }, 15),
+    'beating King Crow resumes the pipes',
+  );
+  const after1 = await p.evaluate(() => { const s = window.__game.scenes.current; return { theme: s.theme.id, limit: s.pipes.spawnLimit }; });
+  check(after1.theme === 'dusk' && after1.limit === 150, `then dusk, with Phoenix Lord at pipe 150 (${after1.theme}, ${after1.limit})`);
   check(p.errors.length === 0, `no page errors (boss) ${p.errors.join('; ')}`);
+
+  // 2a. Phoenix Lord (god mode): volcano arena, frost orb damage, rebirth,
+  //     dodgeable beams / ember rings / spiral, victory, unlocks.
+  p = await page({ width: 288, height: 512 });
+  await p.goto(`${base}?start=149&god&nosound`);
+  await p.waitForTimeout(300);
+  await tap(p);
+  await p.evaluate(AUTOPILOT);
+  check(await waitFor(p, () => window.__game.scenes.current.bosses.boss?.constructor.name === 'PhoenixLord', 30), 'Phoenix Lord appears after pipe 150');
+  check((await p.evaluate(() => window.__game.scenes.current.theme.id)) === 'volcano', 'its fight switches to the volcano theme');
+  const pcfg = await p.evaluate(() => window.__game.config.bosses.phoenixLord);
+  check(
+    await waitFor(p, () => { const b = window.__game.scenes.current.bosses.boss; return b && (b.hp < b.maxHp || b.lives < b.maxLives); }, 90),
+    'catching a frost orb damages Phoenix Lord',
+  );
+  await p.evaluate(() => { const b = window.__game.scenes.current.bosses.boss; b.hp = 1; b.hit(1); });
+  check(
+    await waitFor(p, () => { const b = window.__game.scenes.current.bosses.boss; return b.lives === b.maxLives - 1 && !b.reviving && b.hp === b.maxHp; }, 10),
+    'emptied bar -> rebirth with a full health bar',
+  );
+  const pdodge = await p.evaluate(async () => {
+    const s = window.__game.scenes.current; const boss = s.bosses.boss; const bird = s.bird; const T = window.__game.config.bosses.phoenixLord;
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const realHit = boss.hit; boss.hit = () => {};
+    const reset = (gen) => { s.hazards.clear(); boss.waitT = 0; boss.waitFn = null; boss.script = gen; };
+    const out = { beamMin: Infinity, ringMinGap: Infinity, rings: 0, spiral: 0, spiralBad: 0 };
+    boss.hp = 2; // phase 3, the densest
+    // Beams: lanes in one round keep their distance.
+    for (let i = 0; i < 300; i++) {
+      const ys = boss.beamLanes(boss.p(T.beamLanes));
+      for (let a = 0; a < ys.length; a++) for (let c = a + 1; c < ys.length; c++) out.beamMin = Math.min(out.beamMin, Math.abs(ys[a] - ys[c]));
+    }
+    // Fireball rings: where each ring's embers cross the bird's near edge.
+    const shots = []; const orig = boss.emberAt.bind(boss);
+    boss.emberAt = (x, y, deg, sp) => { shots.push({ x, y, deg, t: boss.t }); orig(x, y, deg, sp); };
+    reset(boss.fireballs());
+    for (let i = 0; i < 1000 && boss.script; i++) await sleep(5);
+    boss.emberAt = orig;
+    const nearX = bird.x + bird.w; const rings = new Map();
+    for (const q of shots) {
+      const k = q.t.toFixed(4); if (!rings.has(k)) rings.set(k, []);
+      if (Math.cos(q.deg * Math.PI / 180) > 0.05) rings.get(k).push(q.y + (q.x - nearX) * Math.tan((q.deg * Math.PI) / 180));
+    }
+    for (const ys of rings.values()) {
+      out.rings++;
+      ys.sort((a, c) => a - c);
+      for (let i = 1; i < ys.length; i++) if (ys[i] > -40 && ys[i - 1] < 440) out.ringMinGap = Math.min(out.ringMinGap, ys[i] - ys[i - 1] - 8);
+    }
+    // Spiral: no ember crosses the bird's column inside the safe gap.
+    reset(boss.spiral());
+    let safe = null; const crossed = new Set();
+    for (let i = 0; i < 2500; i++) {
+      if (boss.safeCenter) safe = { fn: boss.safeCenter, band: boss.safeBand };
+      if (safe) for (const f of s.hazards.list) {
+        if (f.constructor.name !== 'Ember' || crossed.has(f) || f.x > bird.cx) continue;
+        crossed.add(f); out.spiral++;
+        if (Math.abs(f.y - safe.fn(boss.t)) < safe.band / 2 + 4) out.spiralBad++;
+      }
+      if (!boss.script || (safe && !boss.safeCenter && !s.hazards.list.some((o) => o.constructor.name === 'Ember'))) break;
+      await sleep(4);
+    }
+    s.hazards.clear(); boss.hit = realHit; boss.hp = boss.maxHp; boss.waitT = 0; boss.waitFn = null; boss.script = boss.behavior();
+    return out;
+  });
+  const beamBand = pcfg.beamHalf * 2 - 6;
+  check(pdodge.beamMin - beamBand >= 30, `beam lanes leave a bird-sized gap (min ${(pdodge.beamMin - beamBand).toFixed(0)}px between flames)`);
+  check(pdodge.rings > 0 && pdodge.ringMinGap >= 30, `ember rings leave bird-sized gaps (${pdodge.rings} rings, min ${pdodge.ringMinGap.toFixed(0)}px)`);
+  check(pdodge.spiral > 0 && pdodge.spiralBad === 0, `ember spiral always leaves a safe gap (${pdodge.spiral} embers, ${pdodge.spiralBad} inside the gap)`);
+  await p.evaluate(() => { const b = window.__game.scenes.current.bosses.boss; b.lives = 1; b.hp = 1; b.hit(1); });
+  check(await waitFor(p, () => window.__game.scenes.current.victory, 15), 'beating Phoenix Lord (the last boss) -> victory');
+  check(await waitFor(p, () => window.__game.scenes.current.panel?.ready, 15), 'victory panel shows');
+  const pend = await p.evaluate(() => { const s = window.__game.scenes.current; return { medal: s.panel.medal?.id, fresh: s.panel.newBirds.map((b) => b.id), stats: JSON.parse(localStorage.getItem('aiflappy.stats')) }; });
+  check(pend.medal === 'inferno', `inferno medal for beating Phoenix Lord (${pend.medal})`);
+  check(pend.stats.phoenixReached === 1 && pend.stats.phoenixDefeated === 1 && !pend.stats.bossesDefeated, 'Phoenix stats recorded separately from King Crow');
+  check(['ember', 'magma'].every((id) => pend.fresh.includes(id)), `reaching / beating Phoenix Lord unlocks birds (${pend.fresh.join(',')})`);
+  check(p.errors.length === 0, `no page errors (Phoenix Lord) ${p.errors.join('; ')}`);
+
+  // 2b0. Practice mode: practice.html menu -> boss -> die -> tap to retry.
+  p = await page({ width: 402, height: 874 }, { dpr: 2, touch: true });
+  await p.goto(`${base}practice.html?nosound`);
+  await p.waitForTimeout(400);
+  check((await state(p)).scene === 'PracticeScene', 'practice.html opens the practice menu');
+  const card = await p.evaluate(() => {
+    const g = window.__game; const s = g.scenes.current; const r = g.renderer; const b = r.bounds; const c = s.cards[1]; const i = c.img;
+    const gx = c.x + i.width / 2; const gy = c.y + i.height / 2;
+    return { x: b.left + (gx / r.w) * b.width, y: b.top + ((gy - r.viewTop) / r.viewH) * b.height };
+  });
+  await p.touchscreen.tap(card.x, card.y);
+  await p.waitForTimeout(900);
+  const pr = await p.evaluate(() => { const s = window.__game.scenes.current; return { scene: s.constructor.name, practice: s.practice, state: s.state, theme: s.theme.id }; });
+  check(pr.scene === 'PlayScene' && pr.practice === 'phoenixLord' && pr.state === 'ready' && pr.theme === 'volcano', `tapping a card starts that boss (${pr.practice})`);
+  await tap(p);
+  await p.evaluate(AUTOPILOT);
+  check(await waitFor(p, () => window.__game.scenes.current.bosses.state === 'fight', 10), 'practice goes straight to the boss (no pipes)');
+  await p.evaluate(() => clearInterval(window.__autopilot));
+  check(await waitFor(p, () => window.__game.scenes.current.panel?.ready, 25), 'losing every life shows the practice panel');
+  const pp = await p.evaluate(() => { const s = window.__game.scenes.current; return { panel: s.panel.constructor.name, stats: localStorage.getItem('aiflappy.stats'), best: localStorage.getItem('aiflappy.best') }; });
+  check(pp.panel === 'PracticePanel' && pp.stats === null && pp.best === null, 'practice runs record nothing (no stats, best or unlocks)');
+  await p.touchscreen.tap(200, 600);
+  await p.waitForTimeout(900);
+  const retry = await p.evaluate(() => { const s = window.__game.scenes.current; return { practice: s.practice, attempt: s.attempt, state: s.state }; });
+  check(retry.practice === 'phoenixLord' && retry.attempt === 2 && retry.state === 'ready', `tap retries the same boss (try ${retry.attempt})`);
+  await tap(p);
+  check(await waitFor(p, () => window.__game.scenes.current.bosses.state === 'warning' || window.__game.scenes.current.bosses.state === 'fight', 5), 'the retry starts at the boss intro');
+  // Direct link to a boss, and the menu button back to the practice menu.
+  await p.goto(`${base}practice.html?boss=kingCrow&nosound`);
+  await p.waitForTimeout(400);
+  const direct = await p.evaluate(() => { const s = window.__game.scenes.current; return { scene: s.constructor.name, practice: s.practice }; });
+  check(direct.scene === 'PlayScene' && direct.practice === 'kingCrow', 'practice.html?boss=kingCrow goes straight to King Crow');
+  await p.keyboard.press('Escape');
+  await p.waitForTimeout(900);
+  check((await state(p)).scene === 'PracticeScene', 'Esc on Get Ready returns to the practice menu');
+  check(p.errors.length === 0, `no page errors (practice) ${p.errors.join('; ')}`);
 
   // 2b. Player lives: survive to the fight, then stop flapping. The first
   //     ground hit costs a life and bounces; running out ends the run.

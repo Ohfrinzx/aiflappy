@@ -1,8 +1,9 @@
 # aiflappy
 
 A remake of the original Flappy Bird in plain JavaScript and HTML5 canvas. It
-runs on desktop and mobile, has no build step and no dependencies, and adds a
-boss fight after pipe 100.
+runs on desktop and mobile, has no build step and no dependencies, and adds
+two boss fights: King Crow after pipe 100 and Phoenix Lord after pipe 150.
+Each boss also has a practice mode with instant retries.
 
 ## Controls
 
@@ -32,6 +33,7 @@ on `file://`. Any static server works too (`npx serve .`, `python -m http.server
 Testing shortcuts (URL flags):
 
 - `?start=95` starts a run at score 95, so the boss arrives after 5 pipes.
+  `?start=149` skips King Crow and meets Phoenix Lord after one pipe.
 - `?god` makes you invincible (you bounce off the ground).
 - `?play` skips the title screen.
 - `?unlockall` makes every bird available for this visit (nothing is saved).
@@ -101,6 +103,10 @@ bird has the same hitbox, so none of them changes the difficulty.
 | Royal (crown) | Beat King Crow |
 | Phoenix | Beat King Crow 3 times |
 | Angel (halo) | Beat King Crow without losing a life |
+| Ember | Reach Phoenix Lord |
+| Magma | Beat Phoenix Lord |
+| Blue Flame | Beat Phoenix Lord 3 times |
+| Dragon (horns + bat wings) | Beat Phoenix Lord without losing a life |
 
 Progress is saved in the browser. Use `?unlockall` to try every bird without
 unlocking them (nothing is saved).
@@ -133,9 +139,53 @@ After the 100th pipe, the pipes stop and a **WARNING** flashes. Then King Crow f
   notches on the health bar mark where the phases change.
 - **Difficulty knobs:** every number is in `CONFIG.bosses.kingCrow`
   (`src/config.js`), with the old easier values in comments.
-- **Winning** shows a Victory screen and the gold crown "champion" medal. To keep
-  the endless run going after the win instead, set
-  `CONFIG.bosses.afterDefeat = 'continue'` in `src/config.js`.
+- **Winning** brings the pipes back, now at sunset (the dusk theme), and the
+  run carries on toward Phoenix Lord. If the run ends after King Crow you get
+  the gold crown "champion" medal.
+
+## The second boss: Phoenix Lord
+
+After pipe 150 (50 pipes after King Crow; boss hits add score but don't count
+as pipes), the sky turns to a volcano and Phoenix Lord arrives.
+
+- **How to damage it:** it drops blue **frost orbs**. Fly into one and it
+  shoots back at the boss. Each hit is +1 score.
+- **Boss lives:** 4 health bars of 10 HP. When a bar empties it burns to ash,
+  then is **reborn** with a full bar. You get 2 hearts, like King Crow.
+- **Phase 1 (10–7 HP):** **flame beams** (a flashing red lane shows where, then
+  a horizontal beam of fire burns there; get out of the lane), **lava pillar**
+  walls, and **fireballs** that burst into a ring of embers. The ring's gaps
+  are wider than the bird when they reach you.
+- **Phase 2 (6–4 HP):** two beams at once, swaying pillar gaps, an **ember
+  spiral** that always leaves one safe gap drifting up and down (stay in it),
+  and **homing wisps** (pink flames) that follow your height. They stop steering
+  just before they reach you, so move at the last moment.
+- **Phase 3 (3–1 HP, blue flames):** back-to-back beam rounds, embers thrown
+  during pillar walls, a denser spiral, and **ash fog** on some attacks: only
+  a circle around the bird stays clear. Beam warnings always show through.
+- Every attack can be dodged by moving up and down only. The smoke test checks
+  the beam lanes, the ember rings and the spiral.
+- **Difficulty knobs:** every number is in `CONFIG.bosses.phoenixLord`
+  (`src/config.js`).
+- **Winning** shows the Victory screen and the flame "inferno" medal. To keep
+  the endless run going after the last boss instead, set
+  `CONFIG.bosses.afterDefeat = 'continue'`.
+
+## Practice mode
+
+Open **`practice.html`** (on GitHub Pages:
+`https://<username>.github.io/<repo>/practice.html`), or tap **PRACTICE** on the
+title screen. Pick a boss and you start right at its intro, with no pipes.
+
+- When you lose your last heart, the panel shows your try number and how many
+  of the boss's health bars were left. **Tap anywhere to retry** from the boss
+  intro with full health on both sides.
+- Direct links skip the menu: `practice.html?boss=kingCrow` and
+  `practice.html?boss=phoenixLord`.
+- The pause button (or Esc) on Get Ready / the retry screen goes back to the
+  practice menu.
+- Practice runs don't count toward your best score, stats or unlocks.
+- Testing flags still work, e.g. `practice.html?boss=phoenixLord&god`.
 
 ## Using the original art & sounds
 
@@ -159,8 +209,8 @@ src/
   content/             data-driven content: birds, themes, medals, bosses
   entities/            bird, pipes, ground, particles, projectiles, boss base class
   systems/             boss director (when bosses appear), hazards container
-  ui/                  buttons, number drawing, game over / victory panel
-  scenes/              title and play scenes
+  ui/                  buttons, number drawing, game over / victory / practice panels
+  scenes/              title, play and practice-menu scenes
 ```
 
 ### Adding content
@@ -168,14 +218,17 @@ src/
 - **New bird:** add an entry to `src/content/birds.js`: a palette, a file
   prefix, and an optional style (wings, accessories, pattern) and unlock goal.
   New accessories and wing shapes go in `src/art/birds.js`.
-- **New background:** add an entry to `src/content/themes.js`.
+- **New background:** add an entry to `src/content/themes.js`. A boss can
+  switch to it with `theme` (when its WARNING starts) or `then` (after it is
+  beaten) on its `CONFIG.bosses.encounters` entry.
 - **New medal:** add to `src/content/medals.js`. It's a test function on the run
   stats, checked top to bottom.
 - **New boss:** subclass `Boss` (`src/entities/boss.js`). Write its behaviour as
   generator scripts (`yield 0.5` waits half a second, `yield () => cond` waits
-  until cond is true). Register it in `src/content/bosses/index.js`, then
-  schedule it in `CONFIG.bosses.encounters`, e.g.
-  `{ at: 200, id: 'myBoss' }`.
+  until cond is true). Register it in `src/content/bosses/index.js` (name,
+  practice-card sprite, stat names), then schedule it in
+  `CONFIG.bosses.encounters`, e.g. `{ at: 200, id: 'myBoss' }`. It shows up in
+  practice mode automatically.
 - **New sound:** add a function to `SYNTH` in `src/audio/synth.js`, then call
   `game.audio.play('name')`.
 - **New screen/mode:** write a scene class (`update`, `render`, `onInput`) and

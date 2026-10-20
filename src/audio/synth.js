@@ -100,6 +100,14 @@ export const SYNTH = {
     noise(ctx, out, t, { dur: 0.9, type: 'lowpass', f0: 1800, f1: 80, peak: 0.9, attack: 0.01 });
     tone(ctx, out, t, { type: 'sine', f0: 90, f1: 30, dur: 0.8, peak: 0.4 });
   },
+  flame(ctx, out, t) {
+    noise(ctx, out, t, { dur: 0.8, type: 'lowpass', f0: 1400, f1: 500, peak: 0.45, attack: 0.04 });
+    tone(ctx, out, t, { type: 'sawtooth', f0: 90, f1: 70, dur: 0.7, peak: 0.08, attack: 0.04 });
+  },
+  burst(ctx, out, t) {
+    noise(ctx, out, t, { dur: 0.25, type: 'lowpass', f0: 2600, f1: 400, peak: 0.5 });
+    tone(ctx, out, t, { type: 'square', f0: 300, f1: 90, dur: 0.15, peak: 0.1 });
+  },
   victory(ctx, out, t) {
     [523, 659, 784, 1046].forEach((f, i) => {
       tone(ctx, out, t + i * 0.12, { type: 'square', f0: f, dur: i === 3 ? 0.5 : 0.12, peak: 0.1 });

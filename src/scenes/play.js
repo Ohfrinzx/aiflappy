@@ -1,4 +1,6 @@
 // One run: Get Ready -> playing (pipes, bosses) -> dying -> game over / victory.
+// Practice mode (`practice: bossId`) skips the pipes, starts at the boss, and
+// ends with a tap-to-retry panel instead of recording the run.
 import { CONFIG } from '../config.js';
 import { weightedPick } from '../core/math.js';
 import { Events } from '../core/events.js';
@@ -13,14 +15,23 @@ import { BossDirector } from '../systems/bossDirector.js';
 import { Button } from '../ui/button.js';
 import { drawNumber } from '../ui/numbers.js';
 import { GameOverPanel } from '../ui/gameOver.js';
+import { PracticePanel } from '../ui/practicePanel.js';
 import { renderHitboxes } from '../ui/hitboxOverlay.js';
 
+const THEME_FADE = 1.5; // seconds to crossfade the background between themes
+
 export class PlayScene {
-  constructor(game, { startScore = 0 } = {}) {
+  constructor(game, { startScore = 0, practice = null, attempt = 1 } = {}) {
     this.game = game;
     const sp = game.sprites;
     this.events = new Events();
-    this.theme = weightedPick(THEMES);
+    this.practice = practice; // boss id in practice mode
+    this.attempt = attempt;
+    const enc = practice && (CONFIG.bosses.encounters.find((e) => e.id === practice) ?? { id: practice });
+    this.theme = THEMES.find((t) => t.id === enc?.theme) ?? weightedPick(THEMES.filter((t) => t.weight > 0));
+    this.startTheme = this.theme;
+    this.prevTheme = null;
+    this.themeFade = 0;
     this.skin = game.progress.skinForRun();
     this.bird = new Bird(sp, this.skin);
     this.pipes = new PipeField(sp, this.events);
@@ -28,12 +39,14 @@ export class PlayScene {
     this.ground = new Ground(sp);
     this.particles = new Particles();
     this.hazards = new Hazards();
-    this.bosses = new BossDirector(this);
+    this.bosses = new BossDirector(this, practice ? { encounters: [{ id: practice, at: 0 }], practice: true } : {});
     this.score = startScore;
     this.pipesPassed = 0; // real pipes passed this run (for unlock stats)
-    this.reachedBoss = false;
+    this.reached = []; // boss ids fought this run
+    this.flawless = []; // boss ids beaten without losing a life
     this.flaps = 0;
     this.livesLost = 0;
+    this.livesLostAtFight = 0;
     this.state = 'ready'; // ready | playing | dying | over
     this.paused = false;
     this.readyAlpha = 1;
@@ -91,7 +104,17 @@ export class PlayScene {
     if (this.leaving) return;
     this.leaving = true;
     this.game.audio.play('swoosh');
-    this.game.toTitle();
+    if (this.practice) this.game.toPractice();
+    else this.game.toTitle();
+  }
+
+  // Crossfades the background (and ground) to another theme.
+  setTheme(id) {
+    const t = THEMES.find((x) => x.id === id);
+    if (!t || t === this.theme) return;
+    this.prevTheme = this.theme;
+    this.theme = t;
+    this.themeFade = 1;
   }
 
   onBlur() {
@@ -146,11 +169,18 @@ export class PlayScene {
     g.renderer.shake(CONFIG.fx.shakeTime, CONFIG.fx.shakeAmount);
   }
 
-  onBossDefeated() {
+  onBossStart(enc) {
+    this.lives = CONFIG.bosses.playerLives;
+    this.reached.push(enc.id);
+    this.livesLostAtFight = this.livesLost;
+  }
+
+  onBossDefeated(enc, final) {
     this.lives = null; // back to one-hit for any pipes that follow
     this.invulnT = 0;
     this.bird.blink = 0;
-    if (CONFIG.bosses.afterDefeat === 'end') {
+    if (this.livesLost === this.livesLostAtFight) this.flawless.push(enc.id);
+    if (final && (this.practice || CONFIG.bosses.afterDefeat === 'end')) {
       this.victory = true;
       this.state = 'dying'; // reuse the "wait, then show panel" path
       this.deadT = 0;
@@ -158,27 +188,42 @@ export class PlayScene {
       this.game.audio.play('victory');
     } else {
       this.pipes.spawning = true;
+      if (enc.then) this.setTheme(enc.then);
     }
   }
 
   finish() {
     const g = this.game;
+    this.state = 'over';
+    if (this.practice) {
+      // Nothing is recorded; tap anywhere to fight the boss again.
+      const boss = this.bosses.boss;
+      this.panel = new PracticePanel(g, {
+        bossId: this.practice,
+        attempt: this.attempt,
+        victory: this.victory,
+        bossLives: boss ? boss.lives : 0,
+        bossMaxLives: boss?.maxLives ?? 0,
+        onRetry: () => g.practiceRun(this.practice, this.attempt + 1),
+      });
+      return;
+    }
+    const beaten = this.bosses.defeated;
     const { best, prevBest, newBirds } = g.progress.recordRun({
       score: this.score,
       pipes: this.pipesPassed,
-      reachedBoss: this.reachedBoss,
-      bossesDefeated: this.bosses.defeatedCount,
+      reached: this.reached,
+      beaten,
+      flawless: this.flawless,
       flaps: this.flaps,
-      night: this.theme.id === 'night',
-      flawless: this.livesLost === 0,
+      night: this.startTheme.id === 'night',
     });
-    this.state = 'over';
     this.panel = new GameOverPanel(g, {
       score: this.score,
       best,
       newBirds,
       isNew: this.score > prevBest,
-      medal: medalFor({ score: this.score, best, bossesDefeated: this.bosses.defeatedCount }),
+      medal: medalFor({ score: this.score, best, beaten }),
       victory: this.victory,
       onPlay: () => g.newRun(),
     });
@@ -190,6 +235,7 @@ export class PlayScene {
     if (this.paused) return;
     const bird = this.bird;
     this.particles.update(dt);
+    if (this.themeFade > 0) this.themeFade = Math.max(0, this.themeFade - dt / THEME_FADE);
 
     // Apply input inside the fixed step so interpolation stays consistent.
     const tap = this.queuedTap;
@@ -224,10 +270,6 @@ export class PlayScene {
           this.addScore(passed);
         }
 
-        if (this.bosses.state === 'fight' && this.lives === null) {
-          this.lives = CONFIG.bosses.playerLives;
-          this.reachedBoss = true;
-        }
         if (this.invulnT > 0) {
           this.invulnT -= dt;
           bird.blink = Math.max(0, this.invulnT);
@@ -266,12 +308,24 @@ export class PlayScene {
     const W = CONFIG.width;
     const a = this.paused ? 1 : alpha;
 
-    r.draw(sp.get(this.theme.file), 0, 0);
-    r.fillTop(sp.edgeColor(this.theme.file, 'top'));
+    // Background, crossfading after a theme change (boss arenas).
+    const fade = this.themeFade > 0 ? this.prevTheme : null;
+    for (const [t, k] of fade ? [[fade, 1], [this.theme, 1 - this.themeFade]] : [[this.theme, 1]]) {
+      r.draw(sp.get(t.file), 0, 0, k);
+      r.fillTop(sp.edgeColor(t.file, 'top'), k);
+    }
     this.pipes.render(r, a);
     this.bosses.render(r, a);
     this.hazards.render(r, a);
-    this.ground.render(r, a);
+    const ground = (t) => t.ground ?? 'base';
+    if (fade && ground(fade) !== ground(this.theme)) {
+      this.ground.render(r, a, ground(fade));
+      this.ground.render(r, a, ground(this.theme), 1 - this.themeFade);
+    } else {
+      this.ground.render(r, a, ground(this.theme));
+    }
+    this.bosses.renderFog(r, a);
+    this.hazards.renderOverlay(r, a);
     this.bird.render(r, a);
     this.particles.render(r);
     if (this.game.params.hitboxes) renderHitboxes(r, this);
@@ -290,6 +344,9 @@ export class PlayScene {
     }
 
     if (this.state !== 'over') this.bosses.renderHud(r); // keep the panel clear
+    if (this.practice && this.state !== 'over') {
+      r.drawCentered(sp.text(`PRACTICE  TRY ${this.attempt}`), W / 2, 16);
+    }
 
     // Player lives (boss fights only), top-right.
     if (this.lives !== null && this.state === 'playing') {

@@ -16,6 +16,10 @@ export function makeBackground(t) {
   const W = 144;
   const H = 256;
   const pix = new Pix(W, H).rect(0, 0, W, H, t.sky);
+  if (t.skyTop) {
+    // Vertical sky gradient (sunset / volcano glow) over the top 160 rows.
+    gradient(160, [[0, t.skyTop], [159, t.sky]]).forEach((c, y) => pix.hline(0, y, W, c));
+  }
   const rnd = seeded(t.seed ?? 7);
 
   if (t.stars) {
@@ -37,21 +41,8 @@ export function makeBackground(t) {
   if (t.cloudEdge) clouds.outline(t.cloudEdge);
   pix.blit(clouds, 0, 0);
 
-  // City skyline: blocky buildings with window grids (tops ~y170-181).
-  const city = new Pix(W, H);
-  let x = -2;
-  while (x < W) {
-    const bw = 6 + Math.floor(rnd() * 9);
-    const top = 170 + Math.floor(rnd() * 12);
-    city.rect(x, top, bw, 200 - top, t.city);
-    city.hline(x, top, bw, t.cityEdge);
-    city.vline(x, top, 200 - top, t.cityEdge);
-    for (let wy = top + 2; wy < 197; wy += 2) {
-      for (let wx = x + 2; wx < x + bw - 1; wx += 2) city.set(wx, wy, t.window);
-    }
-    x += bw;
-  }
-  pix.blit(city, 0, 0);
+  if (t.scenery === 'volcano') pix.blit(volcanoes(t, rnd), 0, 0);
+  else pix.blit(skyline(t, rnd), 0, 0);
 
   // Bushes: rounded clumps (tops ~y184-187).
   const bush = new Pix(W, H);
@@ -72,22 +63,103 @@ export function makeBackground(t) {
   return pix.toCanvas();
 }
 
+// City skyline: blocky buildings with window grids (tops ~y170-181).
+function skyline(t, rnd) {
+  const W = 144;
+  const city = new Pix(W, 256);
+  let x = -2;
+  while (x < W) {
+    const bw = 6 + Math.floor(rnd() * 9);
+    const top = 170 + Math.floor(rnd() * 12);
+    city.rect(x, top, bw, 200 - top, t.city);
+    city.hline(x, top, bw, t.cityEdge);
+    city.vline(x, top, 200 - top, t.cityEdge);
+    for (let wy = top + 2; wy < 197; wy += 2) {
+      for (let wx = x + 2; wx < x + bw - 1; wx += 2) city.set(wx, wy, t.window);
+    }
+    x += bw;
+  }
+  return city;
+}
+
+// Volcano cones with glowing craters and lava streams (tops ~y128-160).
+function volcanoes(t, rnd) {
+  const W = 144;
+  const out = new Pix(W, 256);
+  const cones = [
+    { cx: 22, top: 156, slope: 1.6, crater: 4 },
+    { cx: 96, top: 128, slope: 1.25, crater: 7 },
+    { cx: 150, top: 150, slope: 1.5, crater: 4 },
+  ];
+  for (const c of cones) {
+    const cone = new Pix(W, 256);
+    for (let y = c.top; y < 200; y++) {
+      const half = c.crater + (y - c.top) * c.slope;
+      cone.hline(Math.round(c.cx - half), y, Math.round(half * 2), t.city);
+    }
+    cone.outline(t.cityEdge);
+    // Glowing crater and two lava streams wandering down the slopes.
+    cone.hline(Math.round(c.cx - c.crater + 1), c.top, c.crater * 2 - 2, '#ffd23a');
+    cone.hline(Math.round(c.cx - c.crater), c.top + 1, c.crater * 2, t.window);
+    for (const dir of [-1, 1]) {
+      let lx = c.cx + dir * (c.crater - 2);
+      for (let y = c.top + 2; y < 200; y++) {
+        if (rnd() < 0.45) lx += dir * (rnd() < 0.75 ? 1 : 0) - (rnd() < 0.15 ? dir : 0);
+        cone.set(lx, y, t.window);
+      }
+    }
+    out.blit(cone, 0, 0);
+  }
+  return out;
+}
+
 // 168x56 native -> 336x112. Scrolls left; pattern period divides the 48px wrap.
-export function makeGround() {
+export function makeGround(pal = PAL) {
   const W = 168;
   const H = 56;
-  const pix = new Pix(W, H).rect(0, 0, W, H, PAL.dirt);
-  pix.hline(0, 0, W, PAL.outline);
-  pix.hline(0, 1, W, PAL.groundTop);
+  const pix = new Pix(W, H).rect(0, 0, W, H, pal.dirt);
+  pix.hline(0, 0, W, pal.outline);
+  pix.hline(0, 1, W, pal.groundTop);
   for (let y = 2; y < 9; y++) {
     for (let x = 0; x < W; x++) {
-      pix.set(x, y, (x + y) % 12 < 6 ? PAL.groundStripeDark : PAL.groundStripeLight);
+      pix.set(x, y, (x + y) % 12 < 6 ? pal.groundStripeDark : pal.groundStripeLight);
     }
   }
-  pix.hline(0, 9, W, PAL.groundShadow);
-  pix.hline(0, 10, W, PAL.groundEdge);
+  pix.hline(0, 9, W, pal.groundShadow);
+  pix.hline(0, 10, W, pal.groundEdge);
+  if (pal.cracks) {
+    // Glowing cracks in the rock (period 24 so the scroll wrap stays seamless).
+    for (let x = 0; x < W; x += 24) {
+      pix.map(['#...', '.#..', '.##.', '...#', '...#', '..#.'], { '#': pal.cracks }, x + 6, 16);
+      pix.map(['.#.', '#..', '#..', '.##'], { '#': pal.cracks }, x + 17, 34);
+    }
+  }
   return pix.toCanvas();
 }
+
+// Basalt ground with lava stripes (Phoenix Lord's arena).
+export const VOLCANO_GROUND = {
+  outline: '#1a0c0c',
+  groundTop: '#ffb84a',
+  groundStripeDark: '#c83a10',
+  groundStripeLight: '#ff6a1a',
+  groundShadow: '#7a1a08',
+  groundEdge: '#2e1a18',
+  dirt: '#3a2622',
+  cracks: '#a8401a',
+};
+
+// Lava pillars: the pipe shape in basalt with a molten cap (Phoenix walls).
+export const LAVA_PILLAR = {
+  outline: '#1a0c0c',
+  pipeEdge: '#4a2420',
+  pipeHi: '#7a463a',
+  pipeDark: '#2e1614',
+  pipeCapEdge: '#ffe07a',
+  pipeCapHi: '#ffb030',
+  pipeCapDark: '#e0400e',
+  crack: '#ff6a1a',
+};
 
 // 26x160 native -> 52x320, cap at the top (the "lower" pipe orientation).
 // Shading is a horizontal gradient: light highlight left of centre, dark right edge.
@@ -96,7 +168,9 @@ export function makePipe(pal = PAL) {
   const H = 160;
   const CAP = 12;
   const body = gradient(22, [[0, pal.pipeEdge], [7, pal.pipeHi], [18, pal.pipeDark], [21, pal.pipeDark]]);
-  const cap = gradient(24, [[0, pal.pipeCapEdge], [3, pal.pipeHi], [20, pal.pipeDark], [23, pal.pipeDark]]);
+  const capHi = pal.pipeCapHi ?? pal.pipeHi;
+  const capDark = pal.pipeCapDark ?? pal.pipeDark;
+  const cap = gradient(24, [[0, pal.pipeCapEdge], [3, capHi], [20, capDark], [23, capDark]]);
   const pix = new Pix(W, H);
   for (let y = CAP; y < H; y++) {
     pix.set(1, y, pal.outline);
@@ -106,6 +180,15 @@ export function makePipe(pal = PAL) {
   pix.hline(2, CAP, 22, pal.pipeDark); // shadow under the cap
   pix.rect(0, 0, W, CAP, pal.outline);
   for (let y = 1; y < CAP - 2; y++) cap.forEach((c, i) => pix.set(1 + i, y, c));
-  pix.hline(1, CAP - 2, 24, pal.pipeDark);
+  pix.hline(1, CAP - 2, 24, capDark);
+  if (pal.crack) {
+    // Lava veins running down the column.
+    let x = 8;
+    for (let y = CAP + 1; y < H; y++) {
+      if (y % 5 === 0) x = 5 + ((x * 7 + y) % 14);
+      pix.set(x, y, pal.crack);
+      if (y % 9 < 3) pix.set(x + 1, y, pal.crack);
+    }
+  }
   return pix.toCanvas();
 }

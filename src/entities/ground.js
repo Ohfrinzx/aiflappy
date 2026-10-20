@@ -14,11 +14,12 @@ export class Ground {
     if (this.moving) this.dist += CONFIG.pipes.speed * dt;
   }
 
-  render(r, alpha) {
-    const img = this.sprites.get('base');
+  // `sprite` picks the strip ('base', or a theme's own, e.g. 'base-volcano').
+  render(r, alpha, sprite = 'base', opacity = 1) {
+    const img = this.sprites.get(sprite);
     const wrap = Math.max(1, img.width - CONFIG.width);
     const off = lerp(this.pdist, this.dist, alpha) % wrap;
-    r.draw(img, -off, CONFIG.groundY);
-    r.fillBottom(this.sprites.edgeColor('base', 'bottom'));
+    r.draw(img, -off, CONFIG.groundY, opacity);
+    r.fillBottom(this.sprites.edgeColor(sprite, 'bottom'), opacity);
   }
 }

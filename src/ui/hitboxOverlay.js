@@ -54,11 +54,9 @@ export function renderHitboxes(r, scene) {
 
   // Pipes
   const pipes = scene.pipes;
-  const pm = sp.mask(pipes.sprite);
-  const pmf = sp.mask(pipes.sprite, true);
   for (const p of pipes.list) {
-    box(ctx, pmf, p.x, p.gapY - pipes.img.height, RED, 'rgba(255,40,40,0.9)');
-    box(ctx, pm, p.x, p.gapY + p.gap, RED, 'rgba(255,40,40,0.9)');
+    box(ctx, sp.mask(p.sprite, true), p.x, p.gapY - pipes.img.height, RED, 'rgba(255,40,40,0.9)');
+    box(ctx, sp.mask(p.sprite), p.x, p.gapY + p.gap, RED, 'rgba(255,40,40,0.9)');
   }
 
   // Boss
@@ -69,7 +67,15 @@ export function renderHitboxes(r, scene) {
 
   // Projectiles and pickups
   for (const o of scene.hazards.list) {
-    if (o.hits) circle(ctx, o.x, o.y, o.radius, 'rgb(255,40,40)');
+    if (o.rects) {
+      // Beams: lethal rectangles (only while burning).
+      ctx.fillStyle = 'rgba(255,40,40,0.35)';
+      ctx.strokeStyle = 'rgba(255,40,40,0.9)';
+      for (const [x, y, w, h] of o.rects) {
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+      }
+    } else if (o.hits) circle(ctx, o.x, o.y, o.radius, 'rgb(255,40,40)');
     else if (o.touches) circle(ctx, o.x, o.y, o.radius, 'rgb(60,255,90)');
   }
 

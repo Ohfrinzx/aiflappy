@@ -43,11 +43,14 @@ const ACCESSORIES = {
   eyepatch: [['kkkkkk.....', '......kkkkk', '......kkkkk', '.......kkk.'], 4, 1, { k: '#141414' }],
   tufts: [['k....k', 'tk..kt'], 5, 0, { k: '#3a2410', t: '#a87848' }],
   halo: [['hhhhhh'], 6, 0, { h: '#ffe24a' }],
+  horns: [['h....h', 'hk..kh'], 5, 0, { h: '#f4ecd0', k: '#0e2a14' }],
 };
 
 const PATTERNS = {
   rainbow: ['#ff4b4b', '#ff8c1a', '#ffd21a', '#5ad84a', '#3ab0ff', '#7a5cff'],
   flame: ['#fff07a', '#ffd23a', '#ffa21a', '#ff7a1a', '#ff4b1a', '#e0281a'],
+  lava: ['#3a2622', '#ff8a1a', '#c83a10', '#3a2622', '#ff6a1a', '#7a1a08'],
+  blueflame: ['#ffffff', '#c8f4ff', '#7ad8ff', '#4aa8ff', '#2a6aff', '#1a3ab8'],
 };
 
 export function birdPix(p, frame, style = {}) {

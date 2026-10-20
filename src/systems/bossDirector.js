@@ -1,17 +1,19 @@
 // Decides when bosses appear: after `at` regular pipes have spawned, stops the
 // pipe spawner, waits for the screen to clear, flashes WARNING, runs the fight.
+// Practice mode passes a single encounter at 0 pipes.
 import { CONFIG } from '../config.js';
 import { BOSSES } from '../content/bosses/index.js';
 
 export class BossDirector {
-  constructor(scene) {
+  constructor(scene, { encounters = CONFIG.bosses.encounters, practice = false } = {}) {
     this.scene = scene;
-    this.encounters = [...CONFIG.bosses.encounters].sort((a, b) => a.at - b.at);
+    this.encounters = [...encounters].sort((a, b) => a.at - b.at);
+    this.practice = practice;
     this.idx = 0;
     this.state = 'idle';
     this.boss = null;
     this.warnT = 0;
-    this.defeatedCount = 0;
+    this.defeated = []; // ids of bosses beaten this run
     this.syncLimit();
   }
 
@@ -26,7 +28,7 @@ export class BossDirector {
   // Skip encounters already behind us (e.g. debug start score), cap spawner.
   syncLimit() {
     const pipes = this.scene.pipes;
-    while (this.encounter && this.encounter.at <= pipes.spawned) this.idx++;
+    while (!this.practice && this.encounter && this.encounter.at <= pipes.spawned) this.idx++;
     pipes.spawnLimit = this.encounter ? this.encounter.at : Infinity;
   }
 
@@ -39,17 +41,19 @@ export class BossDirector {
       case 'clearing':
         if (!s.pipes.list.length) {
           this.state = 'warning';
-          this.warnT = 2.2;
+          this.warnT = this.practice ? 1.6 : 2.2;
           s.game.audio.play('warning');
+          if (this.encounter.theme) s.setTheme(this.encounter.theme);
         }
         break;
       case 'warning':
         this.warnT -= dt;
         if (this.warnT <= 0) {
-          const Ctor = BOSSES[this.encounter.id];
-          if (!Ctor) throw new Error(`Unknown boss id: ${this.encounter.id}`);
-          this.boss = new Ctor(s);
+          const info = BOSSES[this.encounter.id];
+          if (!info) throw new Error(`Unknown boss id: ${this.encounter.id}`);
+          this.boss = new info.Ctor(s);
           this.state = 'fight';
+          s.onBossStart(this.encounter);
         }
         break;
       case 'fight':
@@ -57,12 +61,13 @@ export class BossDirector {
         for (const orb of s.hazards.touching(s.bird)) this.boss.absorb(orb);
         if (this.boss.finished) {
           const enc = this.encounter;
+          const final = this.idx === this.encounters.length - 1;
           this.boss = null;
           this.state = 'idle';
-          this.defeatedCount++;
+          this.defeated.push(enc.id);
           this.idx++;
           this.syncLimit();
-          s.onBossDefeated(enc);
+          s.onBossDefeated(enc, final);
         }
         break;
     }
@@ -78,6 +83,10 @@ export class BossDirector {
 
   render(r, alpha) {
     this.boss?.render(r, alpha);
+  }
+
+  renderFog(r, alpha) {
+    this.boss?.renderFog?.(r, alpha);
   }
 
   renderHud(r) {

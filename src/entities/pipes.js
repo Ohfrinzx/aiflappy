@@ -28,8 +28,9 @@ export class PipeField {
   }
 
   // sway: optional { amp, speed } makes the gap slide up and down (boss walls).
-  add({ x, gapY, gap = this.cfg.gap, speed = this.cfg.speed, scores = true, sway = null }) {
-    const p = { x, px: x, gapY, pgapY: gapY, baseGapY: gapY, gap, speed, scores, scored: false, sway, t: 0 };
+  // sprite: optional per-pipe look (same 52x320 shape), e.g. 'pillar-lava'.
+  add({ x, gapY, gap = this.cfg.gap, speed = this.cfg.speed, scores = true, sway = null, sprite = this.sprite }) {
+    const p = { x, px: x, gapY, pgapY: gapY, baseGapY: gapY, gap, speed, scores, scored: false, sway, t: 0, sprite };
     this.list.push(p);
     return p;
   }
@@ -84,10 +85,10 @@ export class PipeField {
 
   collides(bird) {
     const h = this.img.height;
-    const m = this.sprites.mask(this.sprite);
-    const mf = this.sprites.mask(this.sprite, true);
     const bm = bird.mask;
     for (const p of this.list) {
+      const m = this.sprites.mask(p.sprite);
+      const mf = this.sprites.mask(p.sprite, true);
       if (p.x > bird.x + bird.w || p.x + m.w < bird.x) continue;
       if (masksOverlap(bm, bird.x, bird.y, mf, p.x, p.gapY - h)) return true;
       if (masksOverlap(bm, bird.x, bird.y, m, p.x, p.gapY + p.gap)) return true;
@@ -96,8 +97,8 @@ export class PipeField {
   }
 
   render(r, alpha) {
-    const img = this.img;
     for (const p of this.list) {
+      const img = this.sprites.get(p.sprite);
       const x = lerp(p.px, p.x, alpha);
       const gy = lerp(p.pgapY, p.gapY, alpha);
       r.drawFlippedY(img, x, gy - img.height);

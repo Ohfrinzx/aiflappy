@@ -181,12 +181,12 @@ export class Renderer {
 
   // Fills the extra sky above the 512-tall design area (tall screens only).
   // Overlaps the design area by 1px to hide the smoothed image edge.
-  fillTop(color) {
-    if (this.viewTop < 0) this.rect(0, this.viewTop, this.w, 1 - this.viewTop, color);
+  fillTop(color, alpha = 1) {
+    if (this.viewTop < 0) this.rect(0, this.viewTop, this.w, 1 - this.viewTop, color, alpha);
   }
 
   // Fills the extra area below the design area (tall screens only).
-  fillBottom(color) {
-    if (this.viewBottom > this.h) this.rect(0, this.h - 1, this.w, this.viewBottom - this.h + 1, color);
+  fillBottom(color, alpha = 1) {
+    if (this.viewBottom > this.h) this.rect(0, this.h - 1, this.w, this.viewBottom - this.h + 1, color, alpha);
   }
 }

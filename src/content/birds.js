@@ -4,7 +4,8 @@
 //            (see src/art/birds.js)
 //   unlock:  omit for always-available; otherwise { stat, at, label } where stat
 //            is one of best | runs | totalPipes | flaps | nightRuns | bossReached |
-//            bossesDefeated | flawlessWins
+//            bossesDefeated | flawlessWins (King Crow) | phoenixReached |
+//            phoenixDefeated | phoenixFlawless
 //            (tracked in src/systems/progress.js)
 const OUTLINE = '#533846';
 
@@ -149,6 +150,38 @@ export const BIRDS = [
     palette: {
       outline: '#8a8aa8', highlight: '#ffffff', body: '#f4f4fa', belly: '#dcdce8',
       white: '#ffffff', wing: '#ffffff', wingShade: '#e8e8f4', lipTop: '#ffd23a', lipBottom: '#f0b820',
+    },
+  },
+  {
+    id: 'ember', name: 'Ember', file: 'emberbird',
+    unlock: { stat: 'phoenixReached', at: 1, label: 'REACH PHOENIX LORD' },
+    palette: {
+      outline: '#1a1012', highlight: '#5a4e52', body: '#3a3034', belly: '#ff7a1a',
+      white: '#ffe8c0', wing: '#4a3e42', wingShade: '#ff6a1a', lipTop: '#ffb030', lipBottom: '#e8401a',
+    },
+  },
+  {
+    id: 'magma', name: 'Magma', file: 'magmabird', style: { pattern: 'lava' },
+    unlock: { stat: 'phoenixDefeated', at: 1, label: 'BEAT PHOENIX LORD' },
+    palette: {
+      outline: '#1a0c0c', highlight: '#ffb030', body: '#c83a10', belly: '#7a1a08',
+      white: '#ffe8c0', wing: '#3a2622', wingShade: '#ff6a1a', lipTop: '#ffd23a', lipBottom: '#ffb030',
+    },
+  },
+  {
+    id: 'blueflame', name: 'Blue Flame', file: 'blueflamebird', style: { pattern: 'blueflame' },
+    unlock: { stat: 'phoenixDefeated', at: 3, label: 'BEAT PHOENIX LORD 3 TIMES' },
+    palette: {
+      outline: '#0a1a4a', highlight: '#e0f8ff', body: '#4aa8ff', belly: '#2a6aff',
+      white: '#ffffff', wing: '#c8f4ff', wingShade: '#7ad8ff', lipTop: '#ffffff', lipBottom: '#a8e8ff',
+    },
+  },
+  {
+    id: 'dragon', name: 'Dragon', file: 'dragonbird', style: { wings: 'bat', accessories: ['horns'] },
+    unlock: { stat: 'phoenixFlawless', at: 1, label: 'FLAWLESS PHOENIX WIN' },
+    palette: {
+      outline: '#0e2a14', highlight: '#8ae86a', body: '#3aa84a', belly: '#e8d870',
+      white: '#fff8c0', wing: '#2a7a3a', wingShade: '#3aa84a', lipTop: '#ff6a1a', lipBottom: '#e8401a',
     },
   },
 ];
