@@ -61,3 +61,9 @@ The game tries `.ogg`, then `.wav`, then `.mp3`.
 | ★ `die` | Falling after hitting a pipe |
 | ★ `swoosh` | Menu transitions / panels |
 | `warning`, `roar`, `shoot`, `bossHit`, `orb`, `charge`, `explode`, `victory` | Boss fight |
+
+## Other files
+
+`keepalive-120fps.mp4` is not a game asset: it's the 64×64, 1-second, 120 fps
+loop that the `?keepalive=video` stutter test plays (generated with
+`ffmpeg -f lavfi -i testsrc2=size=64x64:rate=120 -t 1 -c:v libx264 -profile:v baseline -pix_fmt yuv420p -an -movflags +faststart`).

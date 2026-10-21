@@ -61,11 +61,13 @@ export class PerfOverlay {
     this.i = (this.i + 1) % N;
   }
 
-  render(r, modeLabel = '') {
+  // top: draw in the sky instead of the dirt (the title screen's version
+  // number, which cycles test modes, lives in the dirt).
+  render(r, modeLabel = '', top = false) {
     const ctx = r.ctx;
     const s = r.pixelScale;
     const x0 = 8;
-    const y0 = r.viewBottom - 50; // bottom of graph, in game coords
+    const y0 = top ? 48 : r.viewBottom - 50; // bottom of graph, in game coords
     ctx.setTransform(s, 0, 0, s, 0, r.offY * s);
     ctx.globalAlpha = 0.75;
     ctx.fillStyle = '#000';

@@ -9,6 +9,9 @@ self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  // Byte-range requests (video) go straight to the network: the cache can't
+  // store partial responses.
+  if (req.headers.has('range')) return;
   e.respondWith(
     (async () => {
       const cache = await caches.open(CACHE);
