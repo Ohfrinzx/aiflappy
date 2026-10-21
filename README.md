@@ -72,7 +72,13 @@ on (its default), and read "tap hitches" on the graph:
 2. `TEST SCROLL`, `TEST FAST`, `TEST VIDEO`, `TEST COMBO`: if one brings tap
    hitches to about 0, that keepalive fixes it without changing any setting.
    (v1.10.1 on the owner's iPhone: `TEST SCROLL` 32/57, down from ~100%.)
-3. Settings → Accessibility → Motion → **Limit Frame Rate** on, back to
+3. **`lab.html`** (open it in Safari; same engine): strip A draws like the game
+   (main thread, `requestAnimationFrame`), strip B draws from a worker into an
+   `OffscreenCanvas` on its own clock. A worker's frames reach the screen
+   without waiting for the page's 60 fps rendering update. Tap the screen
+   steadily and watch which strip stutters; try both paces and the keepalive.
+   If B stays smooth, moving the game's drawing into a worker is the fix.
+4. Settings → Accessibility → Motion → **Limit Frame Rate** on, back to
    `TEST PERF`: caps the whole phone at 60 Hz, so there is no boost to switch to.
    It's a setting, but it applies to every browser and home-screen app.
 
