@@ -19,6 +19,7 @@ export class PerfOverlay {
     // Recent samples (last 10 taps; the first tap is skipped because it
     // includes one-time audio startup).
     this.handlerRecent = [];
+    this.tapRecent = []; // hitch (true/false) for the last 20 taps
     this.workTapRecent = [];
     this.workOther = 0; // game work on non-tap frames (smoothed, ms)
     this.otherFrames = 0;
@@ -52,6 +53,8 @@ export class PerfOverlay {
     if (this.tapPending && this.handlerRecent.length) {
       this.tapFrames++;
       if (ms > this.hitchMs) this.tapHitches++;
+      this.tapRecent.push(ms > this.hitchMs);
+      if (this.tapRecent.length > 20) this.tapRecent.shift();
     } else if (!this.tapPending && this.seenFirstTap) {
       this.otherFrames++;
       if (ms > this.hitchMs) this.otherHitches++;
@@ -95,7 +98,8 @@ export class PerfOverlay {
     const fps = sum > 0 ? (count * 1000) / sum : 0;
     ctx.fillStyle = '#fff';
     ctx.font = '7px monospace';
-    ctx.fillText(`${fps.toFixed(0)} fps  worst ${this.worst.toFixed(0)}ms  tap hitches ${this.tapHitches}/${this.tapFrames}`, x0, y0 + 12);
+    const lastHitches = this.tapRecent.filter(Boolean).length;
+    ctx.fillText(`${fps.toFixed(0)} fps  worst ${this.worst.toFixed(0)}ms  tap hitches ${this.tapHitches}/${this.tapFrames} (last ${this.tapRecent.length}: ${lastHitches})`, x0, y0 + 12);
     const f = (v) => v.toFixed(1);
     const max = (a) => (a.length ? Math.max(...a) : 0);
     ctx.fillText(`touch ${f(max(this.handlerRecent))}ms  game ${f(max(this.workTapRecent))}/${f(this.workOther)}ms  other slow ${this.otherHitches}/${this.otherFrames}`, x0, y0 + 22);
