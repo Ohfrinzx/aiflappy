@@ -75,6 +75,14 @@ export class TitleScene {
     if (this.left.handle(evt) || this.right.handle(evt)) return;
     if (this.play.handle(evt) || this.practice.handle(evt)) return;
     if (evt.type === 'press' && evt.source === 'key') this.play.onClick();
+    // Tapping the version number cycles the stutter test modes (see main.js).
+    if (evt.type === 'press' && evt.source === 'pointer' && Math.abs(evt.x - CONFIG.width / 2) < 40
+      && evt.y > this.versionY() - 14 && evt.y < this.versionY() + 18) this.game.cycleTestMode();
+  }
+
+  // Version, bottom-centre in the dirt (clear of the iPhone home indicator).
+  versionY() {
+    return Math.round(Math.max(CONFIG.groundY + 56, this.game.renderer.viewBottom - 34));
   }
 
   update(dt) {
@@ -121,8 +129,12 @@ export class TitleScene {
 
     this.play.render(r, this.playable ? 1 : 0.35);
     this.practice.render(r, this.playable ? 1 : 0.35);
-    // Version, bottom-centre in the dirt (clear of the iPhone home indicator).
-    const ver = sp.get('text-version');
-    r.drawCentered(ver, W / 2, Math.round(Math.max(CONFIG.groundY + 56, r.viewBottom - 34)));
+    const vy = this.versionY();
+    r.drawCentered(sp.get('text-version'), W / 2, vy);
+    const mode = this.game.testMode;
+    if (mode && mode.id !== 'off') {
+      const label = sp.text(`TEST ${mode.id.toUpperCase()}`);
+      r.drawCentered(label, W / 2, vy - label.height - 1);
+    }
   }
 }

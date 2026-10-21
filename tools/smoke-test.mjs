@@ -188,7 +188,12 @@ try {
     out.beamOff = null;
     for (let i = 0; i < 600 && out.beamOff === null; i++) {
       const main = s.hazards.list.find((o) => o.constructor.name === 'FlameBeam' && o.x1 < 250);
-      if (main && !main.tracking) out.beamOff = Math.abs(main.y - bird.cy);
+      // Measured against the closest spot the bird-sized-gap rule allows: an
+      // extra lane near the bird pushes the tracked one away by design.
+      if (main && !main.tracking) {
+        const extras = s.hazards.list.filter((o) => o.constructor.name === 'FlameBeam' && o !== main).map((o) => o.y);
+        out.beamOff = Math.abs(main.y - boss.trackY(bird.cy, extras));
+      }
       await sleep(4);
     }
     reset(boss.dive());
@@ -235,7 +240,7 @@ try {
   });
   const beamBand = pcfg.beamHalf * 2 - 6;
   check(pdodge.beamMin - beamBand >= 30, `beam lanes leave a bird-sized gap (min ${(pdodge.beamMin - beamBand).toFixed(0)}px between flames)`);
-  check(pdodge.beamOff !== null && pdodge.beamOff < 30, `the beam lane tracks the bird, then locks (${pdodge.beamOff?.toFixed(0)}px off at lock)`);
+  check(pdodge.beamOff !== null && pdodge.beamOff < 30, `the beam lane tracks the bird, then locks (${pdodge.beamOff?.toFixed(0)}px from the closest allowed spot)`);
   check(pdodge.diveOff !== null && pdodge.diveOff < 30 && pdodge.diveSeen, `the flame dive tracks the bird, then dashes (${pdodge.diveOff?.toFixed(0)}px off at lock)`);
   check(pdodge.rings > 0 && pdodge.ringMinGap >= 30, `ember rings leave bird-sized gaps (${pdodge.rings} rings, min ${pdodge.ringMinGap.toFixed(0)}px)`);
   check(pdodge.spiral > 0 && pdodge.spiralBad === 0, `ember spiral always leaves a safe gap (${pdodge.spiral} embers, ${pdodge.spiralBad} inside the gap)`);
@@ -423,6 +428,52 @@ try {
   await p.waitForTimeout(300);
   const h2 = await p.evaluate(() => window.__game.renderer.canvas.getBoundingClientRect().height);
   check(Math.abs(h2 - 812) <= 1, `canvas fills 402x812 viewport (${h2}px)`);
+
+  // 4b. Stutter test modes: keepalive variants, and tapping the version number
+  //     on the title screen cycles off -> perf -> css -> scroll -> video -> off.
+  p = await page({ width: 288, height: 512 });
+  await p.goto(`${base}?keepalive=scroll&perf`);
+  await p.waitForTimeout(600);
+  const sc1 = await p.evaluate(() => window.__game.keepalive?.probe());
+  await p.waitForTimeout(300);
+  const sc2 = await p.evaluate(() => window.__game.keepalive?.probe());
+  check(sc1 > 0 && sc2 !== sc1, `?keepalive=scroll keeps a box smooth-scrolling (${sc1} -> ${sc2})`);
+  await p.goto(`${base}?keepalive=video`);
+  await p.waitForTimeout(400);
+  const vid = await p.evaluate(() => { const v = document.querySelector('video'); return v && window.__game.keepalive.mode === 'video' && v.muted && v.loop && v.playsInline && v.src.endsWith('keepalive-120fps.mp4'); });
+  check(vid, '?keepalive=video adds a muted inline looping video');
+  check(p.errors.length === 0, `no page errors (keepalive) ${p.errors.join('; ')}`);
+
+  p = await page({ width: 402, height: 874 }, { dpr: 1, touch: true });
+  await p.goto(base);
+  await p.waitForTimeout(400);
+  const verPos = await p.evaluate(() => {
+    const g = window.__game; const s = g.scenes.current; const r = g.renderer; const b = r.bounds; const img = g.sprites.get('text-version');
+    const gy = s.versionY() + img.height / 2;
+    return { x: b.left + b.width / 2, y: b.top + ((gy - r.viewTop) / r.viewH) * b.height };
+  });
+  const seen = [await p.evaluate(() => window.__game.testMode.id)];
+  for (let i = 0; i < 5; i++) {
+    await p.touchscreen.tap(verPos.x, verPos.y);
+    await p.waitForTimeout(150);
+    seen.push(await p.evaluate(() => {
+      const g = window.__game; const k = g.keepalive;
+      const n = document.querySelectorAll('body > div, body > video').length;
+      return `${g.testMode.id}${k ? `/${k.mode}` : ''}${n ? `+${n}` : ''}`;
+    }));
+    if (i === 0) {
+      const saved = await p.evaluate(() => localStorage.getItem('aiflappy.testMode'));
+      check(saved === '"perf"', `test mode is saved (${saved})`);
+    }
+  }
+  check(seen.join(' ') === 'off perf css/css+1 scroll/scroll+1 video/video+1 off', `version tap cycles test modes (${seen.join(' ')})`);
+  check((await state(p)).scene === 'TitleScene', 'version taps stay on the title screen');
+  await p.evaluate(() => window.__game.cycleTestMode()); // perf, saved
+  await p.reload();
+  await p.waitForTimeout(400);
+  check(await p.evaluate(() => window.__game.testMode.id === 'perf'), 'saved test mode is restored on launch');
+  await p.evaluate(() => localStorage.removeItem('aiflappy.testMode'));
+  check(p.errors.length === 0, `no page errors (test modes) ${p.errors.join('; ')}`);
 
   // 5. Service worker: registers, controls the page, and serves fresh files.
   p = await page({ width: 288, height: 512 });

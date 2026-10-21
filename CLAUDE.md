@@ -26,12 +26,22 @@ GitHub Pages from `main`. See README.md for the architecture.
 
 - Testing shortcuts: `?start=N` (begin at score N), `?god`, `?play`,
   `?perf` (frame-time graph), `?nosound`, `?autoflap` (no-touch flapping),
-  `?input=pointer|none`, `?keepalive`, `?fps=N` (stutter diagnostics).
+  `?input=pointer|none`, `?keepalive[=css|scroll|video]`, `?fps=N` (stutter
+  diagnostics). In the home-screen app, tapping the version number on the
+  title screen cycles saved test modes (perf graph + each keepalive).
 - `?hitboxes` (or `hitboxes.html`) draws the real collision shapes.
 - Known iOS issue: Safari's default "Prefer Page Rendering Updates near
   60fps" flag causes a hitch on every touch on ProMotion iPhones (touch boost
-  re-phases the 60 fps cadence). Verified not fixable from page code
-  (keepalive, frame caps, input changes); turning the flag off fixes it.
+  re-phases the 60 fps cadence). Turning the flag off fixes it. Already ruled
+  out on device: input changes, frame caps, the css keepalive. WebKit source
+  (`RemoteLayerTreeDrawingAreaProxyIOS.mm`): with the flag on, page frames come
+  from a CADisplayLink at 60 fps, and the only high-frame-rate path needs the
+  flag off or the off-by-default "Threaded Time-based Animations at High Frame
+  Rate" setting, so rAF can't go above 60. Untested candidates (v1.10.1) hold
+  the display at 120 Hz from outside that display link: `scroll` (programmatic
+  smooth scroll runs as UIKit's `setContentOffset:animated:`) and `video`
+  (120 fps loop). The system-wide setting Accessibility → Motion → Limit Frame
+  Rate should also prevent the boost.
 - Touch input must stay on *passive* listeners (see `src/core/input.js`);
   non-passive touch handlers caused per-tap hitches on iOS. Pointer listeners
   are only registered when a mouse/pen exists.

@@ -19,16 +19,16 @@ import { BOSSES } from './content/bosses/index.js';
 import { Progress } from './systems/progress.js';
 import { VERSION } from './version.js';
 import { PerfOverlay } from './ui/perfOverlay.js';
+import { KEEPALIVE_MODES, startKeepalive } from './core/keepalive.js';
 
-// A near-invisible element spinning forever via a compositor (CSS) animation.
-function startKeepalive() {
-  const el = document.createElement('div');
-  el.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;background:#000;opacity:0.02;pointer-events:none;will-change:transform;animation:aiflappy-keepalive 1s linear infinite';
-  const style = document.createElement('style');
-  style.textContent = '@keyframes aiflappy-keepalive{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
-  document.head.appendChild(style);
-  document.body.appendChild(el);
-}
+// Test modes for on-device stutter checks, cycled by tapping the version number
+// on the title screen (the home-screen app has no address bar for URL flags).
+// The choice is saved; ?perf / ?keepalive override it for one visit.
+const TEST_MODES = [
+  { id: 'off', perf: false, keepalive: null },
+  { id: 'perf', perf: true, keepalive: null },
+  ...KEEPALIVE_MODES.map((k) => ({ id: k, perf: true, keepalive: k })),
+];
 
 // ?autoflap: keeps the bird hovering mid-screen with synthetic taps, so frame
 // pacing can be measured with no touch events at all.
@@ -54,9 +54,10 @@ function readParams() {
     // Stutter diagnostics: ?input=pointer uses pointer events instead of touch
     // events; ?autoflap flaps automatically (no touches, implies ?god).
     input: ['pointer', 'none'].includes(q.get('input')) ? q.get('input') : 'touch',
-    // ?keepalive runs a tiny compositor animation so the display never idles
-    // down (tests whether ProMotion refresh changes on touch cause hitches).
-    keepalive: q.has('keepalive'),
+    // ?keepalive[=css|scroll|video] tries to hold the display at 120 Hz so a
+    // touch can't change its refresh rate (see core/keepalive.js); bare
+    // ?keepalive is the original css mode.
+    keepalive: KEEPALIVE_MODES.includes(q.get('keepalive')) ? q.get('keepalive') : q.has('keepalive') ? 'css' : null,
     autoflap,
     // Practice mode: practice.html (menu) or ?boss=<id> (straight into that boss).
     practice: window.__PRACTICE === true || q.has('boss'),
@@ -109,13 +110,34 @@ async function boot() {
       audio.setMuted(!audio.muted);
       storage.set('muted', audio.muted);
     },
+    testMode: null,
+    setTestMode(mode) {
+      game.testMode = mode;
+      keepalive?.stop();
+      keepalive = startKeepalive(mode.keepalive);
+      perf = mode.perf ? (perf ?? new PerfOverlay(params.fps)) : null;
+    },
+    cycleTestMode() {
+      const next = TEST_MODES[(TEST_MODES.indexOf(game.testMode) + 1) % TEST_MODES.length];
+      game.setTestMode(next);
+      storage.set('testMode', next.id);
+    },
+    get keepalive() {
+      return keepalive;
+    },
   };
 
+  let perf = null;
+  let keepalive = null;
+  if (params.perf || params.keepalive) game.setTestMode({ id: 'url', perf: params.perf, keepalive: params.keepalive });
+  else game.setTestMode(TEST_MODES.find((m) => m.id === storage.get('testMode', 'off')) ?? TEST_MODES[0]);
+
   if (params.nosound) audio.muted = true;
-  if (params.keepalive) startKeepalive();
-  input.onGesture(() => audio.unlock());
-  const perf = params.perf ? new PerfOverlay(params.fps) : null;
-  if (perf) input.subscribe((evt) => evt.type === 'press' && perf.tap());
+  input.onGesture(() => {
+    audio.unlock();
+    keepalive?.nudge();
+  });
+  input.subscribe((evt) => evt.type === 'press' && perf?.tap());
   input.subscribe((evt) => scenes.input(evt));
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) scenes.current?.onBlur?.();
@@ -147,8 +169,8 @@ async function boot() {
       if (perf) {
         perf.record(dt, work, input.handlerMs);
         input.handlerMs = 0;
-        const mode = `input ${params.input}${params.autoflap ? ' (autoflap)' : ''}  audio ${audio.muted ? 'off' : audio.mode}${params.keepalive ? '  keepalive' : ''}${params.fps ? `  cap ${params.fps}fps` : ''}`;
-        perf.render(renderer, mode);
+        const mode = `input ${params.input}${params.autoflap ? ' (autoflap)' : ''}  audio ${audio.muted ? 'off' : audio.mode}${keepalive ? `  keepalive ${keepalive.mode}` : ''}${params.fps ? `  cap ${params.fps}fps` : ''}`;
+        perf.render(renderer, mode, scenes.current instanceof TitleScene);
       }
     },
   }).start();
