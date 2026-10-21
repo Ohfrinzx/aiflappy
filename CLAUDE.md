@@ -26,7 +26,7 @@ GitHub Pages from `main`. See README.md for the architecture.
 
 - Testing shortcuts: `?start=N` (begin at score N), `?god`, `?play`,
   `?perf` (frame-time graph), `?nosound`, `?autoflap` (no-touch flapping),
-  `?input=pointer|none`, `?keepalive[=css|scroll|video]`, `?fps=N` (stutter
+  `?input=pointer|none`, `?keepalive[=css|scroll|fast|video|combo]`, `?fps=N` (stutter
   diagnostics). In the home-screen app, tapping the version number on the
   title screen cycles saved test modes (perf graph + each keepalive).
 - `?hitboxes` (or `hitboxes.html`) draws the real collision shapes.
@@ -37,11 +37,12 @@ GitHub Pages from `main`. See README.md for the architecture.
   (`RemoteLayerTreeDrawingAreaProxyIOS.mm`): with the flag on, page frames come
   from a CADisplayLink at 60 fps, and the only high-frame-rate path needs the
   flag off or the off-by-default "Threaded Time-based Animations at High Frame
-  Rate" setting, so rAF can't go above 60. Untested candidates (v1.10.1) hold
-  the display at 120 Hz from outside that display link: `scroll` (programmatic
-  smooth scroll runs as UIKit's `setContentOffset:animated:`) and `video`
-  (120 fps loop). The system-wide setting Accessibility → Motion → Limit Frame
-  Rate should also prevent the boost.
+  Rate" setting, so rAF can't go above 60. Candidates hold the display at
+  120 Hz from outside that display link: `scroll` (programmatic smooth scroll
+  runs as UIKit's `setContentOffset:animated:`) cut tap hitches from ~100% to
+  32/57 on the owner's iPhone (v1.10.1); `fast` (never eases out), `video`
+  (120 fps loop) and `combo` untested (v1.10.2). The system-wide setting
+  Accessibility → Motion → Limit Frame Rate should also prevent the boost.
 - Touch input must stay on *passive* listeners (see `src/core/input.js`);
   non-passive touch handlers caused per-tap hitches on iOS. Pointer listeners
   are only registered when a mouse/pen exists.

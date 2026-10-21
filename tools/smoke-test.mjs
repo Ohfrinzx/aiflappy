@@ -430,7 +430,8 @@ try {
   check(Math.abs(h2 - 812) <= 1, `canvas fills 402x812 viewport (${h2}px)`);
 
   // 4b. Stutter test modes: keepalive variants, and tapping the version number
-  //     on the title screen cycles off -> perf -> css -> scroll -> video -> off.
+  //     on the title screen cycles off -> perf -> scroll -> fast -> video ->
+  //     combo -> off.
   p = await page({ width: 288, height: 512 });
   await p.goto(`${base}?keepalive=scroll&perf`);
   await p.waitForTimeout(600);
@@ -438,6 +439,13 @@ try {
   await p.waitForTimeout(300);
   const sc2 = await p.evaluate(() => window.__game.keepalive?.probe());
   check(sc1 > 0 && sc2 !== sc1, `?keepalive=scroll keeps a box smooth-scrolling (${sc1} -> ${sc2})`);
+  await p.goto(`${base}?keepalive=fast`);
+  const fast = [];
+  for (let i = 0; i < 4; i++) {
+    await p.waitForTimeout(300);
+    fast.push(await p.evaluate(() => window.__game.keepalive?.probe()));
+  }
+  check(fast.every((y, i) => i === 0 || y > fast[i - 1] + 500), `?keepalive=fast keeps scrolling fast one way (${fast.join(' -> ')})`);
   await p.goto(`${base}?keepalive=video`);
   await p.waitForTimeout(400);
   const vid = await p.evaluate(() => { const v = document.querySelector('video'); return v && window.__game.keepalive.mode === 'video' && v.muted && v.loop && v.playsInline && v.src.endsWith('keepalive-120fps.mp4'); });
@@ -453,7 +461,7 @@ try {
     return { x: b.left + b.width / 2, y: b.top + ((gy - r.viewTop) / r.viewH) * b.height };
   });
   const seen = [await p.evaluate(() => window.__game.testMode.id)];
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 6; i++) {
     await p.touchscreen.tap(verPos.x, verPos.y);
     await p.waitForTimeout(150);
     seen.push(await p.evaluate(() => {
@@ -466,7 +474,7 @@ try {
       check(saved === '"perf"', `test mode is saved (${saved})`);
     }
   }
-  check(seen.join(' ') === 'off perf css/css+1 scroll/scroll+1 video/video+1 off', `version tap cycles test modes (${seen.join(' ')})`);
+  check(seen.join(' ') === 'off perf scroll/scroll+1 fast/fast+1 video/video+1 combo/combo+2 off', `version tap cycles test modes (${seen.join(' ')})`);
   check((await state(p)).scene === 'TitleScene', 'version taps stay on the title screen');
   await p.evaluate(() => window.__game.cycleTestMode()); // perf, saved
   await p.reload();
