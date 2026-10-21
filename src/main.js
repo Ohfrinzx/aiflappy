@@ -21,14 +21,21 @@ import { VERSION } from './version.js';
 import { PerfOverlay } from './ui/perfOverlay.js';
 import { KEEPALIVE_MODES, startKeepalive } from './core/keepalive.js';
 
+// iPhone / iPad (iPadOS reports a Mac user agent, but has touch).
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+// Normal play on iOS holds the display at 120 Hz with the combo keepalive, so
+// touches stop knocking Safari's 60 fps frames out of step (owner's iPhone,
+// v1.10.3: "easily feels and looks the best"; see core/keepalive.js).
+const DEFAULT_KEEPALIVE = IOS ? 'combo' : null;
+
 // Test modes for on-device stutter checks, cycled by tapping the version number
 // on the title screen (the home-screen app has no address bar for URL flags).
+// Each shows the frame-time graph; NONE is the old behaviour (no keepalive).
 // The choice is saved; ?perf / ?keepalive override it for one visit.
-// css is left out of the cycle: already ruled out on device (still ?keepalive).
 const TEST_MODES = [
-  { id: 'off', perf: false, keepalive: null },
-  { id: 'perf', perf: true, keepalive: null },
-  ...KEEPALIVE_MODES.filter((k) => k !== 'css').map((k) => ({ id: k, perf: true, keepalive: k })),
+  { id: 'off', perf: false, keepalive: DEFAULT_KEEPALIVE },
+  { id: 'none', perf: true, keepalive: null },
+  ...['fast', 'video', 'combo'].map((k) => ({ id: k, perf: true, keepalive: k })),
 ];
 
 // ?autoflap: keeps the bird hovering mid-screen with synthetic taps, so frame
@@ -57,8 +64,8 @@ function readParams() {
     input: ['pointer', 'none'].includes(q.get('input')) ? q.get('input') : 'touch',
     // ?keepalive[=css|scroll|fast|video|combo] tries to hold the display at
     // 120 Hz so a touch can't change its refresh rate (see core/keepalive.js);
-    // bare ?keepalive is the original css mode.
-    keepalive: KEEPALIVE_MODES.includes(q.get('keepalive')) ? q.get('keepalive') : q.has('keepalive') ? 'css' : null,
+    // bare ?keepalive is the original css mode, ?keepalive=none turns it off.
+    keepalive: [...KEEPALIVE_MODES, 'none'].includes(q.get('keepalive')) ? q.get('keepalive') : q.has('keepalive') ? 'css' : null,
     autoflap,
     // Practice mode: practice.html (menu) or ?boss=<id> (straight into that boss).
     practice: window.__PRACTICE === true || q.has('boss'),
@@ -116,7 +123,7 @@ async function boot() {
       game.testMode = mode;
       keepalive?.stop();
       keepalive = startKeepalive(mode.keepalive);
-      perf = mode.perf ? (perf ?? new PerfOverlay(params.fps)) : null;
+      perf = mode.perf ? new PerfOverlay(params.fps) : null; // fresh stats per mode
     },
     cycleTestMode() {
       const next = TEST_MODES[(TEST_MODES.indexOf(game.testMode) + 1) % TEST_MODES.length];
@@ -130,7 +137,10 @@ async function boot() {
 
   let perf = null;
   let keepalive = null;
-  if (params.perf || params.keepalive) game.setTestMode({ id: 'url', perf: params.perf, keepalive: params.keepalive });
+  if (params.perf || params.keepalive) {
+    const k = params.keepalive === 'none' ? null : params.keepalive ?? DEFAULT_KEEPALIVE;
+    game.setTestMode({ id: 'url', perf: params.perf, keepalive: k });
+  }
   else game.setTestMode(TEST_MODES.find((m) => m.id === storage.get('testMode', 'off')) ?? TEST_MODES[0]);
 
   if (params.nosound) audio.muted = true;

@@ -430,8 +430,7 @@ try {
   check(Math.abs(h2 - 812) <= 1, `canvas fills 402x812 viewport (${h2}px)`);
 
   // 4b. Stutter test modes: keepalive variants, and tapping the version number
-  //     on the title screen cycles off -> perf -> scroll -> fast -> video ->
-  //     combo -> off.
+  //     on the title screen cycles off -> none -> fast -> video -> combo -> off.
   p = await page({ width: 288, height: 512 });
   await p.goto(`${base}?keepalive=scroll&perf`);
   await p.waitForTimeout(600);
@@ -461,7 +460,7 @@ try {
     return { x: b.left + b.width / 2, y: b.top + ((gy - r.viewTop) / r.viewH) * b.height };
   });
   const seen = [await p.evaluate(() => window.__game.testMode.id)];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 5; i++) {
     await p.touchscreen.tap(verPos.x, verPos.y);
     await p.waitForTimeout(150);
     seen.push(await p.evaluate(() => {
@@ -471,17 +470,37 @@ try {
     }));
     if (i === 0) {
       const saved = await p.evaluate(() => localStorage.getItem('aiflappy.testMode'));
-      check(saved === '"perf"', `test mode is saved (${saved})`);
+      check(saved === '"none"', `test mode is saved (${saved})`);
     }
   }
-  check(seen.join(' ') === 'off perf scroll/scroll+1 fast/fast+1 video/video+1 combo/combo+2 off', `version tap cycles test modes (${seen.join(' ')})`);
+  check(seen.join(' ') === 'off none fast/fast+1 video/video+1 combo/combo+2 off', `version tap cycles test modes (${seen.join(' ')})`);
   check((await state(p)).scene === 'TitleScene', 'version taps stay on the title screen');
-  await p.evaluate(() => window.__game.cycleTestMode()); // perf, saved
+  await p.evaluate(() => window.__game.cycleTestMode()); // none, saved
   await p.reload();
   await p.waitForTimeout(400);
-  check(await p.evaluate(() => window.__game.testMode.id === 'perf'), 'saved test mode is restored on launch');
+  check(await p.evaluate(() => window.__game.testMode.id === 'none'), 'saved test mode is restored on launch');
   await p.evaluate(() => localStorage.removeItem('aiflappy.testMode'));
   check(p.errors.length === 0, `no page errors (test modes) ${p.errors.join('; ')}`);
+
+  // iPhone: normal play runs the combo keepalive (no graph); ?keepalive=none
+  // turns it off.
+  {
+    const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1';
+    const ctx = await browser.newContext({ viewport: { width: 402, height: 874 }, deviceScaleFactor: 3, hasTouch: true, isMobile: true, userAgent: ua });
+    const ip = await ctx.newPage();
+    const errs = [];
+    ip.on('pageerror', (e) => errs.push(e.message));
+    await ip.goto(base);
+    await ip.waitForTimeout(500);
+    const def = await ip.evaluate(() => ({ mode: window.__game.testMode.id, keep: window.__game.keepalive?.mode, els: document.querySelectorAll('body > div, body > video').length }));
+    check(def.mode === 'off' && def.keep === 'combo' && def.els === 2, `iPhone: normal play runs the combo keepalive (${def.keep}, ${def.els} elements)`);
+    await ip.goto(`${base}?keepalive=none`);
+    await ip.waitForTimeout(400);
+    const none = await ip.evaluate(() => ({ keep: window.__game.keepalive, els: document.querySelectorAll('body > div, body > video').length }));
+    check(none.keep === null && none.els === 0, 'iPhone: ?keepalive=none turns it off');
+    check(errs.length === 0, `no page errors (iPhone keepalive) ${errs.join('; ')}`);
+    await ctx.close();
+  }
 
   // 4c. Hitch lab: main-thread strip runs on rAF, worker strip draws on its own
   //     clock, and the keepalive / pace buttons work.

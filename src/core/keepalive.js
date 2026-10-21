@@ -60,8 +60,9 @@ function fastScrollKeepalive() {
   const box = document.createElement('div');
   box.style.cssText = `${HIDDEN};width:16px;height:16px;overflow-y:scroll`;
   const inner = document.createElement('div');
-  // Stripes, so every scrolled frame really changes pixels.
-  inner.style.cssText = 'height:200000px;background:repeating-linear-gradient(#000 0 4px,#fff 4px 8px)';
+  // Faint stripes, so scrolled frames really change pixels without showing
+  // (black / white stripes showed through at the top-left corner).
+  inner.style.cssText = 'height:200000px;background:repeating-linear-gradient(#808080 0 4px,#888 4px 8px)';
   box.appendChild(inner);
   document.body.appendChild(box);
   // Re-aim far ahead every 100 ms, so the scroll never eases out; turn
