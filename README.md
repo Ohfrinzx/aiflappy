@@ -50,16 +50,17 @@ Testing shortcuts (URL flags):
   events, and `?input=none` ignores touches entirely. `?fps=N` caps how many
   frames per second are drawn (10–120); physics run at the same speed. All of
   these are for diagnosing stutter with `?perf`.
-- `?keepalive=scroll`, `?keepalive=video` and `?keepalive=css` (or plain
-  `?keepalive`) try to hold an iPhone's display at 120 Hz, so touching the
-  screen can't change its refresh rate (the suspected cause of the per-tap
-  hitch, see below). `scroll` keeps an invisible box smooth-scrolling, `video`
-  loops a tiny muted 120 fps video, and `css` runs a compositor animation.
+- `?keepalive=scroll|fast|video|combo|css` (plain `?keepalive` = `css`) try to
+  hold an iPhone's display at 120 Hz, so touching the screen can't change its
+  refresh rate (the suspected cause of the per-tap hitch, see below). `scroll`
+  keeps an invisible box smooth-scrolling back and forth, `fast` keeps it
+  scrolling fast in one direction, `video` loops a tiny muted 120 fps video,
+  `combo` is `fast` plus `video`, and `css` runs a compositor animation.
 
 **Test modes in the home-screen app** (it has no address bar for URL flags):
 tap the version number on the title screen to cycle through `TEST PERF`
-(frame-time graph), `TEST CSS`, `TEST SCROLL` and `TEST VIDEO` (graph plus that
-keepalive), then back to normal. The choice is remembered.
+(frame-time graph), `TEST SCROLL`, `TEST FAST`, `TEST VIDEO` and `TEST COMBO`
+(graph plus that keepalive), then back to normal. The choice is remembered.
 
 **The per-tap hitch on ProMotion iPhones.** Safari's default "Prefer Page
 Rendering Updates near 60fps" setting drives page frames from a 60 Hz display
@@ -68,8 +69,9 @@ frame. To compare on your phone, use the test modes with Safari's setting left
 on (its default), and read "tap hitches" on the graph:
 
 1. `TEST PERF`: the baseline (expect most taps to hitch).
-2. `TEST SCROLL`, then `TEST VIDEO`: if either brings tap hitches to about 0,
-   that keepalive fixes it without changing any setting.
+2. `TEST SCROLL`, `TEST FAST`, `TEST VIDEO`, `TEST COMBO`: if one brings tap
+   hitches to about 0, that keepalive fixes it without changing any setting.
+   (v1.10.1 on the owner's iPhone: `TEST SCROLL` 32/57, down from ~100%.)
 3. Settings → Accessibility → Motion → **Limit Frame Rate** on, back to
    `TEST PERF`: caps the whole phone at 60 Hz, so there is no boost to switch to.
    It's a setting, but it applies to every browser and home-screen app.

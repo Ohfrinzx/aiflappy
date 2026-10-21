@@ -24,10 +24,11 @@ import { KEEPALIVE_MODES, startKeepalive } from './core/keepalive.js';
 // Test modes for on-device stutter checks, cycled by tapping the version number
 // on the title screen (the home-screen app has no address bar for URL flags).
 // The choice is saved; ?perf / ?keepalive override it for one visit.
+// css is left out of the cycle: already ruled out on device (still ?keepalive).
 const TEST_MODES = [
   { id: 'off', perf: false, keepalive: null },
   { id: 'perf', perf: true, keepalive: null },
-  ...KEEPALIVE_MODES.map((k) => ({ id: k, perf: true, keepalive: k })),
+  ...KEEPALIVE_MODES.filter((k) => k !== 'css').map((k) => ({ id: k, perf: true, keepalive: k })),
 ];
 
 // ?autoflap: keeps the bird hovering mid-screen with synthetic taps, so frame
@@ -54,9 +55,9 @@ function readParams() {
     // Stutter diagnostics: ?input=pointer uses pointer events instead of touch
     // events; ?autoflap flaps automatically (no touches, implies ?god).
     input: ['pointer', 'none'].includes(q.get('input')) ? q.get('input') : 'touch',
-    // ?keepalive[=css|scroll|video] tries to hold the display at 120 Hz so a
-    // touch can't change its refresh rate (see core/keepalive.js); bare
-    // ?keepalive is the original css mode.
+    // ?keepalive[=css|scroll|fast|video|combo] tries to hold the display at
+    // 120 Hz so a touch can't change its refresh rate (see core/keepalive.js);
+    // bare ?keepalive is the original css mode.
     keepalive: KEEPALIVE_MODES.includes(q.get('keepalive')) ? q.get('keepalive') : q.has('keepalive') ? 'css' : null,
     autoflap,
     // Practice mode: practice.html (menu) or ?boss=<id> (straight into that boss).

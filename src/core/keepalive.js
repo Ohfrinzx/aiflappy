@@ -7,8 +7,12 @@
 //   css    - a compositor (CSS) animation
 //   scroll - an invisible overflow box kept smooth-scrolling; on iOS, WebKit
 //            hands programmatic smooth scrolls to UIKit's own scroll animation
+//            (owner's iPhone, v1.10.1: tap hitches ~100% -> 32/57)
+//   fast   - the same, but always fast and one way: ProMotion lowers the
+//            refresh rate while a scroll slows down (each reversal / ease-out)
 //   video  - a tiny muted 120 fps video loop
-export const KEEPALIVE_MODES = ['css', 'scroll', 'video'];
+//   combo  - fast + video
+export const KEEPALIVE_MODES = ['css', 'scroll', 'fast', 'video', 'combo'];
 
 // Near-invisible, never takes touches.
 const HIDDEN = 'position:fixed;left:0;top:0;width:8px;height:8px;opacity:0.02;pointer-events:none';
@@ -52,6 +56,34 @@ function scrollKeepalive() {
   };
 }
 
+function fastScrollKeepalive() {
+  const box = document.createElement('div');
+  box.style.cssText = `${HIDDEN};width:16px;height:16px;overflow-y:scroll`;
+  const inner = document.createElement('div');
+  // Stripes, so every scrolled frame really changes pixels.
+  inner.style.cssText = 'height:200000px;background:repeating-linear-gradient(#000 0 4px,#fff 4px 8px)';
+  box.appendChild(inner);
+  document.body.appendChild(box);
+  // Re-aim far ahead every 100 ms, so the scroll never eases out; turn
+  // around only near the ends (every ~6 s).
+  let dir = 1;
+  const kick = () => {
+    const y = box.scrollTop;
+    if (y > box.scrollHeight - box.clientHeight - 20000) dir = -1;
+    else if (y < 20000) dir = 1;
+    box.scrollTo({ top: y + dir * 8000, behavior: 'smooth' });
+  };
+  kick();
+  const timer = setInterval(kick, 100);
+  return {
+    stop() {
+      clearInterval(timer);
+      box.remove();
+    },
+    probe: () => box.scrollTop,
+  };
+}
+
 function videoKeepalive() {
   const v = document.createElement('video');
   v.muted = true;
@@ -76,7 +108,20 @@ function videoKeepalive() {
   };
 }
 
-const STARTERS = { css: cssKeepalive, scroll: scrollKeepalive, video: videoKeepalive };
+function comboKeepalive() {
+  const scroll = fastScrollKeepalive();
+  const video = videoKeepalive();
+  return {
+    stop() {
+      scroll.stop();
+      video.stop();
+    },
+    nudge: video.nudge,
+    probe: scroll.probe,
+  };
+}
+
+const STARTERS = { css: cssKeepalive, scroll: scrollKeepalive, fast: fastScrollKeepalive, video: videoKeepalive, combo: comboKeepalive };
 
 // Returns { mode, stop(), nudge(), probe() } or null for an unknown mode.
 export function startKeepalive(mode) {
