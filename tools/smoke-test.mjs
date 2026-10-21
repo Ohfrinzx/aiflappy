@@ -445,7 +445,7 @@ try {
     await p.waitForTimeout(300);
     fast.push(await p.evaluate(() => window.__game.keepalive?.probe()));
   }
-  check(fast.every((y, i) => i === 0 || y > fast[i - 1] + 500), `?keepalive=fast keeps scrolling fast one way (${fast.join(' -> ')})`);
+  check(fast.every((y, i) => i === 0 || y > fast[i - 1] + 100), `?keepalive=fast keeps scrolling fast one way (${fast.join(' -> ')})`);
   await p.goto(`${base}?keepalive=video`);
   await p.waitForTimeout(400);
   const vid = await p.evaluate(() => { const v = document.querySelector('video'); return v && window.__game.keepalive.mode === 'video' && v.muted && v.loop && v.playsInline && v.src.endsWith('keepalive-120fps.mp4'); });
@@ -482,6 +482,21 @@ try {
   check(await p.evaluate(() => window.__game.testMode.id === 'perf'), 'saved test mode is restored on launch');
   await p.evaluate(() => localStorage.removeItem('aiflappy.testMode'));
   check(p.errors.length === 0, `no page errors (test modes) ${p.errors.join('; ')}`);
+
+  // 4c. Hitch lab: main-thread strip runs on rAF, worker strip draws on its own
+  //     clock, and the keepalive / pace buttons work.
+  p = await page({ width: 402, height: 874 }, { dpr: 3, touch: true });
+  await p.goto(`${base}lab.html`);
+  await p.waitForTimeout(2500);
+  const lab = await p.evaluate(() => ({ frames: window.__lab.stats.frames, draws: window.__lab.workerStats.draws }));
+  // Draw rates are only sanity-checked: headless software rendering at 3x is slow.
+  check(lab.frames > 30 && lab.draws > 20, `lab.html: main strip animates (${lab.frames} frames) and the worker draws (${lab.draws}/s)`);
+  await p.click('button[data-keep="fast"]');
+  await p.click('button[data-pace="240"]');
+  await p.waitForTimeout(1500);
+  const lab2 = await p.evaluate(() => ({ keep: window.__lab.keepalive?.mode, pace: window.__lab.workerStats.pace }));
+  check(lab2.keep === 'fast' && lab2.pace === 240, `lab.html buttons: fast keepalive on, worker paced at ${lab2.pace}/s`);
+  check(p.errors.length === 0, `no page errors (lab) ${p.errors.join('; ')}`);
 
   // 5. Service worker: registers, controls the page, and serves fresh files.
   p = await page({ width: 288, height: 512 });

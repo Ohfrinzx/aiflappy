@@ -43,6 +43,12 @@ GitHub Pages from `main`. See README.md for the architecture.
   32/57 on the owner's iPhone (v1.10.1); `fast` (never eases out), `video`
   (120 fps loop) and `combo` untested (v1.10.2). The system-wide setting
   Accessibility → Motion → Limit Frame Rate should also prevent the boost.
+  Native apps reportedly get the same one-frame drop on touch-down
+  (developer.apple.com/forums/thread/695097), so the goal is 120 fps, where
+  the drop is ~8 ms. `lab.html` tests the one page-level route found:
+  a worker `OffscreenCanvas` presents frames directly to the UI process
+  (WebCore `PlaceholderRenderingContext`), not through the 60 fps page
+  rendering update. Worker rAF is a 15 ms timer, so the lab paces itself.
 - Touch input must stay on *passive* listeners (see `src/core/input.js`);
   non-passive touch handlers caused per-tap hitches on iOS. Pointer listeners
   are only registered when a mouse/pen exists.
